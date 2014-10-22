@@ -30,7 +30,7 @@ include_directories(BEFORE
   ${PROTOBUF_GEN_DIR}
 )
 
-add_library(jitvec
+add_library(jitvec SHARED
   common/status.cc
   common/schema.cc
   common/datatypes.cc
@@ -62,16 +62,7 @@ target_link_libraries(jitvec
   ${GLOG_LIBS}
   ${Boost_LIBRARIES}
   ${PROTOBUF_LIBS}
+  hdfsshared
   jsonstatic
-)
-
-add_executable(tajod
-  main/engine.cc
-)
-
-target_link_libraries(tajod
-  ${GLOG_LIBS}
-  ${Boost_LIBRARIES}
-
-  jitvec
+  gflagsstatic
 )

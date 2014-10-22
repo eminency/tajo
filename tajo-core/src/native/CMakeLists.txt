@@ -127,7 +127,7 @@ set_target_properties(jsonstatic PROPERTIES IMPORTED_LOCATION ${JSON_STATIC_LIB}
 find_package(HDFS REQUIRED)
 include_directories(${HDFS_INCLUDE_DIR})
 set(LIBS ${LIBS} ${HDFS_LIBS})
-add_library(hdfsstatic STATIC IMPORTED)
-set_target_properties(hdfsstatic PROPERTIES IMPORTED_LOCATION ${HDFS_STATIC_LIB})
+add_library(hdfsshared SHARED IMPORTED)
+set_target_properties(hdfsshared PROPERTIES IMPORTED_LOCATION ${HDFS_SHARED_LIB})
 
 add_subdirectory(src)

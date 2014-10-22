@@ -1,9 +1,3 @@
-# This module defines
-#  HDFS_INCLUDE_DIR, directory containing protobuf headers
-#  HDFS_LIBS, directory containing protobuf libraries
-#  HDFS_STATIC_LIB, path to libprotobuf.a
-#  HDFS_FOUND, whether protobuf has been found
-
 set(HDFS_SEARCH_HEADER_PATH
   ${CMAKE_SOURCE_DIR}/extlib/local/include
 )
@@ -19,20 +13,26 @@ find_path(HDFS_INCLUDE_DIR hdfs.h PATHS
   NO_DEFAULT_PATH
 )
 
-find_library(HDFS_LIBS NAMES hdfs PATHS ${HDFS_SEARCH_LIB_PATH})
+find_library(HDFS_LIBS NAMES hdfs 
+  PATHS 
+  ${HDFS_SEARCH_LIB_PATH}
+  $ENV{HADOOP_HOME}/lib/native
+)
+
+message(STATUS "HDFS_LIBS: ${HDFS_LIBS}")
 
 if (HDFS_LIBS)
   set(HDFS_FOUND TRUE)
-  set(HDFS_LIB ${HDFS_SEARCH_LIB_PATH})
-  set(HDFS_STATIC_LIB ${HDFS_SEARCH_LIB_PATH}/libhdfs.a)
+  set(HDFS_LIB ${HDFS_LIBS})
+  set(HDFS_SHARED_LIB ${HDFS_LIB})
 else ()
   set(HDFS_FOUND FALSE)
 endif ()
 
 if (HDFS_FOUND)
   if (NOT HDFS_FIND_QUIETLY)
-    message(STATUS "Found hdfs headers: ${HDFS_SEARCH_HEADER_PATH}")
-    message(STATUS "Found hdfs library: ${HDFS_SEARCH_LIB_PATH}")
+    message(STATUS "Found hdfs headers: ${HDFS_INCLUDE_DIR}")
+    message(STATUS "Found hdfs library: ${HDFS_LIB}")
   endif ()
 else ()
   message(STATUS "hdfs includes and libraries NOT found. "
@@ -43,5 +43,5 @@ endif ()
 mark_as_advanced(
   HDFS_INCLUDE_DIR
   HDFS_LIBS
-  HDFS_STATIC_LIB
+  HDFS_SHARED_LIB
 )
