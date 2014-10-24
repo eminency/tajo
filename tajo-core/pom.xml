@@ -79,7 +79,6 @@
             <exclude>src/test/resources/results/**</exclude>
             <exclude>src/test/resources/results/**</exclude>
             <exclude>src/main/resources/webapps/static/js/*</exclude>
-            <exclude>src/native/**</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -211,33 +210,6 @@
               <overWriteReleases>false</overWriteReleases>
               <overWriteSnapshots>false</overWriteSnapshots>
               <overWriteIfNewer>true</overWriteIfNewer>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>com.googlecode.cmake-maven-project</groupId>
-        <artifactId>cmake-maven-plugin</artifactId>
-        <version>2.8.11-b4</version>
-        <executions>
-          <execution>
-            <id>cmake-generate</id>
-            <goals>
-                <goal>generate</goal>
-            </goals>
-            <configuration>
-              <sourcePath>src/native</sourcePath>
-              <targetPath>${project.build.directory}/native</targetPath>
-              <generator>Unix Makefiles</generator>
-            </configuration>
-          </execution>
-          <execution>
-            <id>cmake-compile</id>
-            <goals>
-                <goal>compile</goal>
-            </goals>
-            <configuration>
-              <projectDirectory>${project.build.directory}/native</projectDirectory>
             </configuration>
           </execution>
         </executions>

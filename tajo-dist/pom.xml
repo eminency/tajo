@@ -132,8 +132,6 @@
                       run cp -r $ROOT/tajo-yarn-pullserver/target/tajo-yarn-pullserver-${project.version}.jar .
                       run cp -r $ROOT/tajo-core/target/tajo-core-${project.version}.jar .
                       run cp -r $ROOT/tajo-core/target/lib .
-                      mkdir -p lib/native
-                      run cp $ROOT/tajo-core/target/native/Debug/lib/lib* lib/native
                       run cp -r ${project.basedir}/src/main/bin .
                       run cp -r ${project.basedir}/src/main/conf .
                       run rm -rf lib/tajo-*-${project.version}.jar
