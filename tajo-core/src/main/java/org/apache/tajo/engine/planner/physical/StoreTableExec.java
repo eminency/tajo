@@ -45,19 +45,18 @@ public class StoreTableExec extends UnaryPhysicalExec {
   private PersistentStoreNode plan;
   private TableMeta meta;
   private Appender appender;
-  private Tuple tuple;
 
   // for file punctuation
   private TableStats sumStats;                  // for aggregating all stats of written files
   private long maxPerFileSize = Long.MAX_VALUE; // default max file size is 2^63
   private int writtenFileNum = 0;               // how many file are written so far?
-  private Path lastFileName;                    // latest written file name
 
   public StoreTableExec(TaskAttemptContext context, PersistentStoreNode plan, PhysicalExec child) throws IOException {
     super(context, plan.getInSchema(), plan.getOutSchema(), child);
     this.plan = plan;
   }
 
+  @Override
   public void init() throws IOException {
     super.init();
 
@@ -73,12 +72,16 @@ public class StoreTableExec extends UnaryPhysicalExec {
       maxPerFileSize = context.getQueryContext().getLong(SessionVars.MAX_OUTPUT_FILE_SIZE) * StorageUnit.MB;
     }
 
+    // openNewFileNative(writtenFileNum, AbstractStorageManager.getHandlerName(meta.getStoreType()));
     openNewFile(writtenFileNum);
     sumStats = new TableStats();
   }
 
-  public void openNewFile(int suffixId) throws IOException {
+  private native void openNewFileNative(int suffixId, String storageType);
+
+  private void openNewFile(int suffixId) throws IOException {
     String prevFile = null;
+    Path lastFileName;
 
     lastFileName = context.getOutputPath();
     if (suffixId > 0) {
@@ -87,13 +90,7 @@ public class StoreTableExec extends UnaryPhysicalExec {
       lastFileName = new Path(lastFileName + "_" + suffixId);
     }
 
-    if (plan instanceof InsertNode) {
-      InsertNode createTableNode = (InsertNode) plan;
-      appender = StorageManagerFactory.getStorageManager(context.getConf()).getAppender(meta,
-          createTableNode.getTableSchema(), context.getOutputPath());
-    } else {
-      appender = StorageManagerFactory.getStorageManager(context.getConf()).getAppender(meta, outSchema, lastFileName);
-    }
+    getAppender(lastFileName);
 
     appender.enableStats();
     appender.init();
@@ -104,11 +101,23 @@ public class StoreTableExec extends UnaryPhysicalExec {
     }
   }
 
+  private void getAppender(Path lastFileName) throws IOException {
+    if (plan instanceof InsertNode) {
+      InsertNode createTableNode = (InsertNode) plan;
+      appender = StorageManagerFactory.getStorageManager(context.getConf()).getAppender(meta,
+          createTableNode.getTableSchema(), context.getOutputPath());
+    } else {
+      appender = StorageManagerFactory.getStorageManager(context.getConf()).getAppender(meta, outSchema, lastFileName);
+    }
+  }
+
   /* (non-Javadoc)
    * @see PhysicalExec#next()
    */
   @Override
   public Tuple next() throws IOException {
+    Tuple tuple;
+
     while((tuple = child.next()) != null) {
       appender.addTuple(tuple);
 
@@ -149,5 +158,16 @@ public class StoreTableExec extends UnaryPhysicalExec {
 
     appender = null;
     plan = null;
+  }
+
+  @Override
+  public String toJsonString() {
+    StringBuffer sb = new StringBuffer();
+
+    sb.append("{'name':'StoreTableExec',");
+    sb.append("'StoreType':'").append(meta.getStoreType().name()).append("'},");
+    sb.append(child.toJsonString());
+
+    return sb.toString();
   }
 }

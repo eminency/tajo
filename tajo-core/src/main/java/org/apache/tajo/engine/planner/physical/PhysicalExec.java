@@ -85,4 +85,8 @@ public abstract class PhysicalExec implements SchemaObject {
   public TableStats getInputStats() {
     return null;
   }
+
+  public String toJsonString() {
+    return "";
+  }
 }

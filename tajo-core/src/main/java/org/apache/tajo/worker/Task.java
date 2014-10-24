@@ -100,6 +100,14 @@ public class Task {
   private final TableStats inputStats;
   private List<FileChunk> localChunks;
 
+  static {
+    try {
+      System.loadLibrary("jitvec");
+    } catch (UnsatisfiedLinkError e) {
+      LOG.error("no library", e);
+    }
+  }
+
   // TODO - to be refactored
   private ShuffleType shuffleType = null;
   private Schema finalSchema = null;
@@ -424,6 +432,9 @@ public class Task {
     }
   }
 
+  private native void runJsonPlan(String jstr);
+  public native void test();
+
   public void run() throws Exception {
     startTime = System.currentTimeMillis();
     Throwable error = null;
@@ -439,9 +450,16 @@ public class Task {
         updateProgress();
       }
 
-      this.executor = executionBlockContext.getTQueryEngine().
-          createPlan(context, plan);
+      // TODO CPP modifying point #1
+      this.executor = executionBlockContext.getTQueryEngine().createPlan(context, plan);
       this.executor.init();
+
+      String planJsonStr = '['+executor.toJsonString()+']';
+      LOG.info("plan json : ");
+      LOG.info(planJsonStr);
+
+      test();
+      runJsonPlan(planJsonStr);
 
       while(!killed && !aborted && executor.next() != null) {
       }

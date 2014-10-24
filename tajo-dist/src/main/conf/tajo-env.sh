@@ -78,3 +78,7 @@ export TAJO_WORKER_STANDBY_MODE=true
 
 # Tajo PullServer mode. the default mode is standalone mode
 # export TAJO_PULLSERVER_STANDALONE=false
+
+# For JNI shared library
+export LD_LIBRARY_PATH=$TAJO_HOME
+export DYLD_LIBRARY_PATH=$TAJO_HOME

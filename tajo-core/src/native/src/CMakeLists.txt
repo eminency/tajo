@@ -25,9 +25,17 @@ ADD_PROTO(TestProtos)
 ADD_PROTO(TestProtocol)
 ADD_PROTO(JitVecTestProtocol)
 
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  SET(JNI_MD_PATH $ENV{JAVA_HOME}/include/darwin)
+ELSE(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  SET(JNI_MD_PATH $ENV{JAVA_HOME}/include/linux)
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+
 include_directories(BEFORE 
   ${CMAKE_CURRENT_SOURCE_DIR} 
   ${PROTOBUF_GEN_DIR}
+  $ENV{JAVA_HOME}/include
+  ${JNI_MD_PATH}
 )
 
 add_library(jitvec SHARED
@@ -54,6 +62,8 @@ add_library(jitvec SHARED
 
   vector/vectors.cc
   vector/map_plus_primitives.cc
+
+  jni/jni.cc
 
   ${PROTO_OUTPUT}
 )

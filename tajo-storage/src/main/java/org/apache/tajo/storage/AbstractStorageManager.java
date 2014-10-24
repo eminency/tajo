@@ -153,13 +153,12 @@ public abstract class AbstractStorageManager {
 
     Class<? extends FileAppender> appenderClass;
 
-    String handlerName = meta.getStoreType().name().toLowerCase();
+    // TODO get store type string and make c++ appender instance
+    String handlerName = getHandlerName(meta.getStoreType());
     appenderClass = APPENDER_HANDLER_CACHE.get(handlerName);
     if (appenderClass == null) {
       appenderClass = conf.getClass(
-          String.format("tajo.storage.appender-handler.%s.class",
-              meta.getStoreType().name().toLowerCase()), null,
-          FileAppender.class);
+          String.format("tajo.storage.appender-handler.%s.class", handlerName), null, FileAppender.class);
       APPENDER_HANDLER_CACHE.put(handlerName, appenderClass);
     }
 
@@ -170,6 +169,10 @@ public abstract class AbstractStorageManager {
     appender = newAppenderInstance(appenderClass, conf, meta, schema, path);
 
     return appender;
+  }
+
+  public static String getHandlerName(CatalogProtos.StoreType type) {
+    return type.name().toLowerCase();
   }
 
   public TableMeta getTableMeta(Path tablePath) throws IOException {
