@@ -122,4 +122,14 @@ public class HashAggregateExec extends AggregationExec {
     hashTable = null;
     iterator = null;
   }
+
+  @Override
+  public String toJsonString() {
+    StringBuffer sb = new StringBuffer();
+
+    sb.append("{'name':'HashAggregateExec'},");
+    sb.append(child.toJsonString());
+
+    return sb.toString();
+  }
 }

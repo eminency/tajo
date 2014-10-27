@@ -71,4 +71,13 @@ public class EvalExprExec extends PhysicalExec {
   public float getProgress() {
     return progress;
   }
+
+  @Override
+  public String toJsonString() {
+    StringBuffer sb = new StringBuffer();
+
+    sb.append("{'name':'EvalExprExec'},");
+
+    return sb.toString();
+  }
 }

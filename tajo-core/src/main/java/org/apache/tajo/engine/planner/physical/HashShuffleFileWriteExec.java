@@ -171,4 +171,14 @@ public final class HashShuffleFileWriteExec extends UnaryPhysicalExec {
 
     progress = 1.0f;
   }
+
+  @Override
+  public String toJsonString() {
+    StringBuffer sb = new StringBuffer();
+
+    sb.append("{'name':'HashShuffleFileWriteExec'},");
+    sb.append(child.toJsonString());
+
+    return sb.toString();
+  }
 }

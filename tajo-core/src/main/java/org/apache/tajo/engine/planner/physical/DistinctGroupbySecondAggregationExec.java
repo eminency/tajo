@@ -289,6 +289,16 @@ public class DistinctGroupbySecondAggregationExec extends UnaryPhysicalExec {
   }
 
   @Override
+  public String toJsonString() {
+    StringBuffer sb = new StringBuffer();
+
+    sb.append("{'name':'DistinctGroupbySecondAggregationExec'},");
+    sb.append(child.toJsonString());
+
+    return sb.toString();
+  }
+
+  @Override
   public void close() throws IOException {
     super.close();
   }

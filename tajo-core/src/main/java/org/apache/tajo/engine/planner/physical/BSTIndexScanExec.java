@@ -142,4 +142,11 @@ public class BSTIndexScanExec extends PhysicalExec {
   public float getProgress() {
     return progress;
   }
+
+  @Override
+  public String toJsonString() {
+    StringBuffer sb = new StringBuffer();
+    sb.append("{'name':'BSTIndexScanExec'}");
+    return sb.toString();
+  }
 }

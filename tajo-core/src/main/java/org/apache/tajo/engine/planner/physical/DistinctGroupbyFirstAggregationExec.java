@@ -473,4 +473,14 @@ public class DistinctGroupbyFirstAggregationExec extends PhysicalExec {
       return dummyTuple;
     }
   }
+
+  @Override
+  public String toJsonString() {
+    StringBuffer sb = new StringBuffer();
+
+    sb.append("{'name':'DistinctGroupbyFirstAggregationExec'},");
+    sb.append(child.toJsonString());
+
+    return sb.toString();
+  }
 }

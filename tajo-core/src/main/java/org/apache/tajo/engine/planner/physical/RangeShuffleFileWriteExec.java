@@ -128,4 +128,14 @@ public class RangeShuffleFileWriteExec extends UnaryPhysicalExec {
     appender = null;
     indexWriter = null;
   }
+
+  @Override
+  public String toJsonString() {
+    StringBuffer sb = new StringBuffer();
+
+    sb.append("{'name':'RangeShuffleFileWriteExec'},");
+    sb.append(child.toJsonString());
+
+    return sb.toString();
+  }
 }

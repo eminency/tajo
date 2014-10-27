@@ -343,4 +343,15 @@ public class SeqScanExec extends PhysicalExec {
       return "SeqScanExec:" + plan;
     }
   }
+
+  @Override
+  public String toJsonString() {
+    StringBuffer sb = new StringBuffer();
+
+    sb.append("{'name':'SeqScanExec', 'scanner':'");
+    sb.append(scanner.getClass().getName());
+    sb.append("'},");
+
+    return sb.toString();
+  }
 }

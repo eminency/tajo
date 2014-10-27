@@ -195,4 +195,13 @@ public class MergeJoinExec extends BinaryPhysicalExec {
     joinQual = null;
     projector = null;
   }
+
+  @Override
+  public String toJsonString() {
+    StringBuffer sb = new StringBuffer();
+
+    sb.append("{'name':'MergeJoinExec'},");
+
+    return sb.toString();
+  }
 }

@@ -241,6 +241,16 @@ public class DistinctGroupbyThirdAggregationExec extends UnaryPhysicalExec {
     super.close();
   }
 
+  @Override
+  public String toJsonString() {
+    StringBuffer sb = new StringBuffer();
+
+    sb.append("{'name':'DistinctGroupbyThirdAggregationExec'},");
+    sb.append(child.toJsonString());
+
+    return sb.toString();
+  }
+
   class DistinctFinalAggregator {
     private FunctionContext[] functionContexts;
     private AggregationFunctionCallEval[] aggrFunctions;

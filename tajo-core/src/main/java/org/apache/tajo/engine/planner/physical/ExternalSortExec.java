@@ -824,4 +824,14 @@ public class ExternalSortExec extends SortExec {
       return inputStats;
     }
   }
+
+  @Override
+  public String toJsonString() {
+    StringBuffer sb = new StringBuffer();
+
+    sb.append("{'name':'ExternalSortExec'},");
+    sb.append(child.toJsonString());
+
+    return sb.toString();
+  }
 }

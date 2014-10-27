@@ -328,6 +328,16 @@ public class DistinctGroupbyHashAggregationExec extends PhysicalExec {
     }
   }
 
+  @Override
+  public String toJsonString() {
+    StringBuffer sb = new StringBuffer();
+
+    sb.append("{'name':'DistinctGroupbyHashAggregationExec'},");
+    sb.append(child.toJsonString());
+
+    return sb.toString();
+  }
+
   class HashAggregator {
     // Outer's GroupBy Key -> Each GroupByNode's Key -> FunctionContext
     private Map<Tuple, Map<Tuple, FunctionContext[]>> hashTable;

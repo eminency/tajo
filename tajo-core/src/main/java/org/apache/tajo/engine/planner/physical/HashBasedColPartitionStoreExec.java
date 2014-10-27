@@ -104,4 +104,14 @@ public class HashBasedColPartitionStoreExec extends ColPartitionStoreExec {
   public void rescan() throws IOException {
     // nothing to do
   }
+
+  @Override
+  public String toJsonString() {
+    StringBuffer sb = new StringBuffer();
+
+    sb.append("{'name':'HashBasedColPartitionStoreExec'},");
+    sb.append(child.toJsonString());
+
+    return sb.toString();
+  }
 }

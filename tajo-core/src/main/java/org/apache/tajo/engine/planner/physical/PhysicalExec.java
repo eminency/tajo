@@ -86,7 +86,5 @@ public abstract class PhysicalExec implements SchemaObject {
     return null;
   }
 
-  public String toJsonString() {
-    return "";
-  }
+  public abstract String toJsonString();
 }

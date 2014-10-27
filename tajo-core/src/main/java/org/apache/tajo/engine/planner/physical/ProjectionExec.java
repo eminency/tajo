@@ -66,4 +66,14 @@ public class ProjectionExec extends UnaryPhysicalExec {
     super.close();
     plan = null;
   }
+
+  @Override
+  public String toJsonString() {
+    StringBuffer sb = new StringBuffer();
+
+    sb.append("{'name':'ProjectionExec'},");
+    sb.append(child.toJsonString());
+
+    return sb.toString();
+  }
 }

@@ -59,4 +59,13 @@ public class UnionExec extends BinaryPhysicalExec {
 
     nextOuter = true;
   }
+
+  @Override
+  public String toJsonString() {
+    StringBuffer sb = new StringBuffer();
+
+    sb.append("{'name':'UnionExec'},");
+
+    return sb.toString();
+  }
 }
