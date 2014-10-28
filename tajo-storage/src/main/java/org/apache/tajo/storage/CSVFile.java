@@ -575,5 +575,19 @@ public class CSVFile {
     public boolean isSplittable(){
       return splittable;
     }
+
+    public String toJson() {
+      JsonNodeFactory factory = JsonNodeFactory.instance;
+
+      ObjectNode obj = factory.objectNode();
+
+      obj.put("name", "CSVScanner");
+      obj.put("delimiter", delimiter);
+      obj.put("path", fragment.getPath().toString());
+      obj.put("start", fragment.getStartKey());
+      obj.put("length", fragment.getEndKey());
+
+      return obj.toString();
+    }
   }
 }
