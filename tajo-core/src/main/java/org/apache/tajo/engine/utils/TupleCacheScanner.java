@@ -111,4 +111,9 @@ public class TupleCacheScanner implements Scanner {
   public Schema getSchema() {
     return schema;
   }
+
+  @Override
+  public String toJson() {
+    return "{'name':"+this.getClass().getName()+"'}";
+  }
 }

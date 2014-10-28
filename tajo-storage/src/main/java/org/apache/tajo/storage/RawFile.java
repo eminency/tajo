@@ -445,6 +445,11 @@ public class RawFile {
         return 0.0f;
       }
     }
+
+    @Override
+    public String toJson() {
+      return "{'name':"+this.getClass().getName()+"'}";
+    }
   }
 
   public static class RawFileAppender extends FileAppender {

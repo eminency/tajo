@@ -42,6 +42,9 @@ import org.apache.tajo.storage.*;
 import org.apache.tajo.storage.fragment.FileFragment;
 import org.apache.tajo.storage.fragment.FragmentConvertor;
 import org.apache.tajo.worker.TaskAttemptContext;
+import org.codehaus.jackson.JsonFactory;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -346,12 +349,14 @@ public class SeqScanExec extends PhysicalExec {
 
   @Override
   public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
+    JsonNodeFactory factory = JsonNodeFactory.instance;
 
-    sb.append("{'name':'SeqScanExec', 'scanner':'");
-    sb.append(scanner.getClass().getName());
-    sb.append("'},");
+    ObjectNode tree = factory.objectNode();
 
-    return sb.toString();
+    tree.put("name", "SeqScanExec");
+    tree.put("scanner", scanner.toJson());
+    tree.put("projector", projector.toJson());
+
+    return tree.toString();
   }
 }

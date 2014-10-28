@@ -383,4 +383,9 @@ public class CSVFileScanner extends FileScannerV2 {
   protected long[] reportReadBytes() {
     return new long[]{totalReadBytesForFetch, totalReadBytesFromDisk};
   }
+
+  @Override
+  public String toJson() {
+    return "{'name':"+this.getClass().getName()+"'}";
+  }
 }

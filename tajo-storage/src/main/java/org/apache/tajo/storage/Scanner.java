@@ -100,4 +100,6 @@ public interface Scanner extends SchemaObject, Closeable {
   float getProgress();
 
   TableStats getInputStats();
+
+  String toJson();
 }

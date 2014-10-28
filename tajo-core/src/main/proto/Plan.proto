@@ -58,18 +58,6 @@ enum NodeType {
   TRUNCATE_TABLE = 26;
 }
 
-message LogicalPlan {
-  required KeyValueSetProto adjacentList = 1;
-}
-
-message LogicalNode {
-  required int32 pid = 1;
-  required NodeType type = 2;
-  required SchemaProto in_schema = 3;
-  required SchemaProto out_schema = 4;
-  required NodeSpec spec = 5;
-}
-
 message NodeSpec {
   optional ScanNode scan = 1;
 }

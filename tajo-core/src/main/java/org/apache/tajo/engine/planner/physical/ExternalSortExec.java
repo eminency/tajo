@@ -624,6 +624,11 @@ public class ExternalSortExec extends SortExec {
     public TableStats getInputStats() {
       return scannerTableStats;
     }
+
+    @Override
+    public String toJson() {
+      return "{'name':"+this.getClass().getName()+"'}";
+    }
   }
 
   /**
@@ -759,6 +764,11 @@ public class ExternalSortExec extends SortExec {
       }
 
       return mergerInputStats;
+    }
+
+    @Override
+    public String toJson() {
+      return "{'name':"+this.getClass().getName()+"'}";
     }
   }
 

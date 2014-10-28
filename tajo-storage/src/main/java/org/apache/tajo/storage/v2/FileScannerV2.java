@@ -231,4 +231,9 @@ public abstract class FileScannerV2 implements Scanner {
   public TableStats getInputStats() {
     return tableStats;
   }
+
+  @Override
+  public String toJson() {
+    return "{'name':"+this.getClass().getName()+"'}";
+  }
 }
