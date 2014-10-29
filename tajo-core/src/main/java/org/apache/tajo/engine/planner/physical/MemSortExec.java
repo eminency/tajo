@@ -86,14 +86,4 @@ public class MemSortExec extends SortExec {
   public SortNode getPlan() {
     return this.plan;
   }
-
-  @Override
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
-
-    sb.append("{'name':'MemSortExec'},");
-    sb.append(child.toJsonString());
-
-    return sb.toString();
-  }
 }

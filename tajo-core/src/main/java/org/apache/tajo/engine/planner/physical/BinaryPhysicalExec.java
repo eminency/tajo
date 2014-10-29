@@ -108,4 +108,21 @@ public abstract class BinaryPhysicalExec extends PhysicalExec {
 
     return inputStats;
   }
+
+  @Override
+  public String toJsonString() {
+    StringBuffer sb = new StringBuffer();
+
+    sb.append("{\"name\":\""+this.getClass().getName()+'"');
+
+    if (leftChild != null)
+      sb.append(",\"left_child\":"+leftChild.toJsonString());
+
+    if (rightChild != null)
+      sb.append(",\"right_child\":"+rightChild.toJsonString());
+
+    sb.append('}');
+
+    return sb.toString();
+  }
 }

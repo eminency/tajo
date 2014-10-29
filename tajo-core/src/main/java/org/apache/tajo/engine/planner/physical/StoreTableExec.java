@@ -164,8 +164,8 @@ public class StoreTableExec extends UnaryPhysicalExec {
   public String toJsonString() {
     StringBuffer sb = new StringBuffer();
 
-    sb.append("{'name':'StoreTableExec',");
-    sb.append("'StoreType':'").append(meta.getStoreType().name()).append("'},");
+    sb.append("{\"name\":\"StoreTableExec\",");
+    sb.append("\"StoreType':\"").append(meta.getStoreType().name()).append("\"},");
     sb.append(child.toJsonString());
 
     return sb.toString();

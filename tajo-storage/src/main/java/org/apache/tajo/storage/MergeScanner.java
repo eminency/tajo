@@ -18,7 +18,6 @@
 
 package org.apache.tajo.storage;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tajo.catalog.Column;
 import org.apache.tajo.catalog.Schema;
@@ -27,6 +26,8 @@ import org.apache.tajo.catalog.statistics.ColumnStats;
 import org.apache.tajo.catalog.statistics.TableStats;
 import org.apache.tajo.conf.TajoConf;
 import org.apache.tajo.storage.fragment.FileFragment;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -197,7 +198,9 @@ public class MergeScanner implements Scanner {
   }
 
   @Override
-  public String toJson() {
-    return "{'name':"+this.getClass().getName()+"'}";
+  public ObjectNode toJsonObject() {
+    ObjectNode node = JsonNodeFactory.instance.objectNode();
+    node.put("name", this.getClass().getName());
+    return node;
   }
 }

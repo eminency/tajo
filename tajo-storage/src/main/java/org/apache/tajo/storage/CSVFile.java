@@ -578,18 +578,18 @@ public class CSVFile {
       return splittable;
     }
 
-    public String toJson() {
+    public ObjectNode toJsonObject() {
       JsonNodeFactory factory = JsonNodeFactory.instance;
 
       ObjectNode obj = factory.objectNode();
 
       obj.put("name", "CSVScanner");
-      obj.put("delimiter", delimiter);
+      obj.put("delimiter", String.valueOf(delimiter));
       obj.put("path", fragment.getPath().toString());
       obj.put("start", fragment.getStartKey());
       obj.put("length", fragment.getEndKey());
 
-      return obj.toString();
+      return obj;
     }
   }
 }

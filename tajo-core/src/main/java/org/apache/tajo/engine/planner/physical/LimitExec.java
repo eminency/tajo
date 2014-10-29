@@ -52,14 +52,4 @@ public class LimitExec extends UnaryPhysicalExec {
     super.init();
     fetchCount = 0;
   }
-
-  @Override
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
-
-    sb.append("{'name':'LimitExec'},");
-    sb.append(child.toJsonString());
-
-    return sb.toString();
-  }
 }

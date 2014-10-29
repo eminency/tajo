@@ -151,13 +151,4 @@ public class PartitionMergeScanExec extends PhysicalExec {
     }
     return inputStats;
   }
-
-  @Override
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
-
-    sb.append("{'name':'PartitionMergeScanExec'},");
-
-    return sb.toString();
-  }
 }

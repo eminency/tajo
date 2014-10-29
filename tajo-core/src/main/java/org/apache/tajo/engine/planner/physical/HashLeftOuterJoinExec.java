@@ -250,14 +250,5 @@ public class HashLeftOuterJoinExec extends BinaryPhysicalExec {
   public JoinNode getPlan() {
     return this.plan;
   }
-
-  @Override
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
-
-    sb.append("{'name':'HashLeftOuterJoinExec'},");
-
-    return sb.toString();
-  }
 }
 

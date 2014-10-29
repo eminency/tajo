@@ -119,13 +119,4 @@ public class NLLeftOuterJoinExec extends BinaryPhysicalExec {
     super.rescan();
     needNextRightTuple = true;
   }
-
-  @Override
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
-
-    sb.append("{'name':'NLLeftOuterJoinExec'},");
-
-    return sb.toString();
-  }
 }

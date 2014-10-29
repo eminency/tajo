@@ -101,13 +101,4 @@ public class NLJoinExec extends BinaryPhysicalExec {
     super.rescan();
     needNewOuter = true;
   }
-
-  @Override
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
-
-    sb.append("{'name':'NLJoinExec'},");
-
-    return sb.toString();
-  }
 }

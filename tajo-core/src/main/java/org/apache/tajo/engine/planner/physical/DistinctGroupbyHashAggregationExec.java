@@ -332,8 +332,10 @@ public class DistinctGroupbyHashAggregationExec extends PhysicalExec {
   public String toJsonString() {
     StringBuffer sb = new StringBuffer();
 
-    sb.append("{'name':'DistinctGroupbyHashAggregationExec'},");
-    sb.append(child.toJsonString());
+    sb.append(super.toJsonString());
+
+    if (child != null)
+      sb.append(child.toJsonString());
 
     return sb.toString();
   }

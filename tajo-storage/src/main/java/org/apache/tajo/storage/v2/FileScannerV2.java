@@ -31,6 +31,8 @@ import org.apache.tajo.catalog.statistics.TableStats;
 import org.apache.tajo.storage.Scanner;
 import org.apache.tajo.storage.Tuple;
 import org.apache.tajo.storage.fragment.FileFragment;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -233,7 +235,9 @@ public abstract class FileScannerV2 implements Scanner {
   }
 
   @Override
-  public String toJson() {
-    return "{'name':"+this.getClass().getName()+"'}";
+  public ObjectNode toJsonObject() {
+    ObjectNode node = JsonNodeFactory.instance.objectNode();
+    node.put("name", this.getClass().getName());
+    return node;
   }
 }

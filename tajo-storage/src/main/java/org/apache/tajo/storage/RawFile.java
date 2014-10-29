@@ -35,6 +35,8 @@ import org.apache.tajo.datum.ProtobufDatumFactory;
 import org.apache.tajo.storage.fragment.FileFragment;
 import org.apache.tajo.unit.StorageUnit;
 import org.apache.tajo.util.BitArray;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -447,8 +449,10 @@ public class RawFile {
     }
 
     @Override
-    public String toJson() {
-      return "{'name':"+this.getClass().getName()+"'}";
+    public ObjectNode toJsonObject() {
+      ObjectNode node = JsonNodeFactory.instance.objectNode();
+      node.put("name", this.getClass().getName());
+      return node;
     }
   }
 

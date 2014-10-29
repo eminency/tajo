@@ -106,13 +106,4 @@ public class HashLeftAntiJoinExec extends HashJoinExec {
 
     return outTuple;
   }
-
-  @Override
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
-
-    sb.append("{'name':'HashLeftAntiJoinExec'},");
-
-    return sb.toString();
-  }
 }

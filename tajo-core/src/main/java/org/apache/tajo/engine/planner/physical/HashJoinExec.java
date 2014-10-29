@@ -230,13 +230,4 @@ public class HashJoinExec extends BinaryPhysicalExec {
 
     return inputStats;
   }
-
-  @Override
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
-
-    sb.append("{'name':'HashJoinExec'},");
-
-    return sb.toString();
-  }
 }

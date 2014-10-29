@@ -86,5 +86,11 @@ public abstract class PhysicalExec implements SchemaObject {
     return null;
   }
 
-  public abstract String toJsonString();
+  public String toJsonString() {
+    StringBuffer sb = new StringBuffer();
+
+    sb.append("{\"name\":\"" + this.getClass().getName()+"\"}");
+
+    return sb.toString();
+  }
 }

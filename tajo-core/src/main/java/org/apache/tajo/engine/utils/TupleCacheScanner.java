@@ -23,6 +23,8 @@ import org.apache.tajo.catalog.Schema;
 import org.apache.tajo.catalog.statistics.TableStats;
 import org.apache.tajo.storage.Scanner;
 import org.apache.tajo.storage.Tuple;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -113,7 +115,9 @@ public class TupleCacheScanner implements Scanner {
   }
 
   @Override
-  public String toJson() {
-    return "{'name':"+this.getClass().getName()+"'}";
+  public ObjectNode toJsonObject() {
+    ObjectNode node = JsonNodeFactory.instance.objectNode();
+    node.put("name", this.getClass().getName());
+    return node;
   }
 }

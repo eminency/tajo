@@ -52,14 +52,4 @@ public class SelectionExec extends UnaryPhysicalExec  {
 
     return null;
   }
-
-  @Override
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
-
-    sb.append("{'name':'SelectionExec'},");
-    sb.append(child.toJsonString());
-
-    return sb.toString();
-  }
 }

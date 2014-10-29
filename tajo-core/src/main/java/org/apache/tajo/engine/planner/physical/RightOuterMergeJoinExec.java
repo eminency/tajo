@@ -362,14 +362,5 @@ public class RightOuterMergeJoinExec extends BinaryPhysicalExec {
     joinQual = null;
     projector = null;
   }
-
-  @Override
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
-
-    sb.append("{'name':'RightOuterMergeJoinExec'},");
-
-    return sb.toString();
-  }
 }
 

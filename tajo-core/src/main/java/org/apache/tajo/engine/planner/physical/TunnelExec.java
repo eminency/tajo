@@ -39,14 +39,4 @@ public class TunnelExec extends UnaryPhysicalExec {
   @Override
   public void rescan() throws IOException {   
   }
-
-  @Override
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
-
-    sb.append("{'name':'TunnelExec'},");
-    sb.append(child.toJsonString());
-
-    return sb.toString();
-  }
 }

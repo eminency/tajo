@@ -47,14 +47,4 @@ public class HavingExec extends UnaryPhysicalExec  {
 
     return null;
   }
-
-  @Override
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
-
-    sb.append("{'name':'HavingExec'},");
-    sb.append(child.toJsonString());
-
-    return sb.toString();
-  }
 }

@@ -337,14 +337,4 @@ public class WindowAggExec extends UnaryPhysicalExec {
     lastKey = null;
     noMoreTuples = false;
   }
-
-  @Override
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
-
-    sb.append("{'name':'WindowAggExec'},");
-    sb.append(child.toJsonString());
-
-    return sb.toString();
-  }
 }

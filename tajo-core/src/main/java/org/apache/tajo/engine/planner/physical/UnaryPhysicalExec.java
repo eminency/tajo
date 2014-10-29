@@ -98,4 +98,16 @@ public abstract class UnaryPhysicalExec extends PhysicalExec {
       return inputStats;
     }
   }
+
+  @Override
+  public String toJsonString() {
+    StringBuffer sb = new StringBuffer();
+
+    sb.append(super.toJsonString()).append(',');
+
+    if (child != null)
+      sb.append(child.toJsonString());
+
+    return sb.toString();
+  }
 }

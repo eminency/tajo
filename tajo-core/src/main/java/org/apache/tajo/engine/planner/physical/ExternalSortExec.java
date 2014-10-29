@@ -45,6 +45,8 @@ import org.apache.tajo.unit.StorageUnit;
 import org.apache.tajo.util.FileUtil;
 import org.apache.tajo.util.TUtil;
 import org.apache.tajo.worker.TaskAttemptContext;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 import java.io.File;
 import java.io.IOException;
@@ -626,8 +628,10 @@ public class ExternalSortExec extends SortExec {
     }
 
     @Override
-    public String toJson() {
-      return "{'name':"+this.getClass().getName()+"'}";
+    public ObjectNode toJsonObject() {
+      ObjectNode node = JsonNodeFactory.instance.objectNode();
+      node.put("name", this.getClass().getName());
+      return node;
     }
   }
 
@@ -767,8 +771,10 @@ public class ExternalSortExec extends SortExec {
     }
 
     @Override
-    public String toJson() {
-      return "{'name':"+this.getClass().getName()+"'}";
+    public ObjectNode toJsonObject() {
+      ObjectNode node = JsonNodeFactory.instance.objectNode();
+      node.put("name", this.getClass().getName());
+      return node;
     }
   }
 
@@ -833,15 +839,5 @@ public class ExternalSortExec extends SortExec {
     } else {
       return inputStats;
     }
-  }
-
-  @Override
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
-
-    sb.append("{'name':'ExternalSortExec'},");
-    sb.append(child.toJsonString());
-
-    return sb.toString();
   }
 }

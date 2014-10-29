@@ -42,7 +42,6 @@ import org.apache.tajo.storage.*;
 import org.apache.tajo.storage.fragment.FileFragment;
 import org.apache.tajo.storage.fragment.FragmentConvertor;
 import org.apache.tajo.worker.TaskAttemptContext;
-import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 
@@ -354,8 +353,8 @@ public class SeqScanExec extends PhysicalExec {
     ObjectNode tree = factory.objectNode();
 
     tree.put("name", "SeqScanExec");
-    tree.put("scanner", scanner.toJson());
-    tree.put("projector", projector.toJson());
+    tree.put("scanner", scanner.toJsonObject());
+    tree.put("projector", projector.toJsonObject());
 
     return tree.toString();
   }

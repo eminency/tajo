@@ -131,14 +131,4 @@ public class SortAggregateExec extends AggregationExec {
     lastKey = null;
     finished = false;
   }
-
-  @Override
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
-
-    sb.append("{'name':'SortAggregateExec'},");
-    sb.append(child.toJsonString());
-
-    return sb.toString();
-  }
 }

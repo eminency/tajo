@@ -32,6 +32,8 @@ import org.apache.tajo.storage.Tuple;
 import org.apache.tajo.storage.compress.CodecPool;
 import org.apache.tajo.storage.fragment.FileFragment;
 import org.apache.tajo.util.BytesUtils;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -385,7 +387,9 @@ public class CSVFileScanner extends FileScannerV2 {
   }
 
   @Override
-  public String toJson() {
-    return "{'name':"+this.getClass().getName()+"'}";
+  public ObjectNode toJsonObject() {
+    ObjectNode node = JsonNodeFactory.instance.objectNode();
+    node.put("name", this.getClass().getName());
+    return node;
   }
 }

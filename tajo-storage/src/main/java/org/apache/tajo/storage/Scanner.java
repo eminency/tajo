@@ -101,5 +101,5 @@ public interface Scanner extends SchemaObject, Closeable {
 
   TableStats getInputStats();
 
-  String toJson();
+  org.codehaus.jackson.node.ObjectNode toJsonObject();
 }

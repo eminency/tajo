@@ -23,37 +23,43 @@ import org.apache.tajo.catalog.Schema;
 import org.apache.tajo.engine.eval.EvalNode;
 import org.apache.tajo.storage.Tuple;
 import org.apache.tajo.worker.TaskAttemptContext;
+import org.codehaus.jackson.JsonFactory;
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.ObjectCodec;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.node.ArrayNode;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
+import org.codehaus.jackson.JsonParser;
+
+import java.io.IOException;
 
 public class Projector {
-  private final TaskAttemptContext context;
   private final Schema inSchema;
-  private final Target [] targets;
 
   // for projection
-  private final int targetNum;
   private final EvalNode[] evals;
 
   public Projector(TaskAttemptContext context, Schema inSchema, Schema outSchema, Target [] targets) {
-    this.context = context;
+    int targetNum;
+
     this.inSchema = inSchema;
     if (targets == null) {
-      this.targets = PlannerUtil.schemaToTargets(outSchema);
-    } else {
-      this.targets = targets;
+      targets = PlannerUtil.schemaToTargets(outSchema);
     }
 
-    this.targetNum = this.targets.length;
+    targetNum = targets.length;
     evals = new EvalNode[targetNum];
 
     if (context.getQueryContext().getBool(SessionVars.CODEGEN)) {
       EvalNode eval;
       for (int i = 0; i < targetNum; i++) {
-        eval = this.targets[i].getEvalTree();
+        eval = targets[i].getEvalTree();
         evals[i] = context.getPrecompiledEval(inSchema, eval);
       }
     } else {
       for (int i = 0; i < targetNum; i++) {
-        evals[i] = this.targets[i].getEvalTree();
+        evals[i] = targets[i].getEvalTree();
       }
     }
   }
@@ -62,5 +68,29 @@ public class Projector {
     for (int i = 0; i < evals.length; i++) {
       out.put(i, evals[i].eval(inSchema, in));
     }
+  }
+
+  public ArrayNode toJsonObject() {
+    StringBuffer sb = new StringBuffer();
+    ObjectNode obj = JsonNodeFactory.instance.objectNode();
+    ArrayNode array = JsonNodeFactory.instance.arrayNode();
+
+    for (EvalNode ev:evals) {
+      JsonFactory factory = new JsonFactory();
+      try {
+        JsonParser parser = factory.createJsonParser(ev.toJson());
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode node = mapper.readTree(parser);
+
+        array.add(node);
+
+
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+      sb.append(ev.toJson());
+    }
+
+    return array;
   }
 }
