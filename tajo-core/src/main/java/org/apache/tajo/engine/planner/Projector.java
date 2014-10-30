@@ -23,16 +23,9 @@ import org.apache.tajo.catalog.Schema;
 import org.apache.tajo.engine.eval.EvalNode;
 import org.apache.tajo.storage.Tuple;
 import org.apache.tajo.worker.TaskAttemptContext;
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.ObjectCodec;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.apache.tajo.util.JsonUtil;
 import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
-import org.codehaus.jackson.node.ObjectNode;
-import org.codehaus.jackson.JsonParser;
-
-import java.io.IOException;
 
 public class Projector {
   private final Schema inSchema;
@@ -71,22 +64,10 @@ public class Projector {
   }
 
   public ArrayNode toJsonObject() {
-    StringBuffer sb = new StringBuffer();
     ArrayNode array = JsonNodeFactory.instance.arrayNode();
 
-    JsonFactory factory = new JsonFactory();
-    ObjectMapper mapper = new ObjectMapper();
-
     for (EvalNode ev:evals) {
-      try {
-        JsonParser parser = factory.createJsonParser(ev.toJson());
-        JsonNode node = mapper.readTree(parser);
-
-        array.add(node);
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-      sb.append(ev.toJson());
+      array.add(JsonUtil.stringToJSONNode(ev.toJson()));
     }
 
     return array;
