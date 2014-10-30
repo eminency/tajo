@@ -22,6 +22,8 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.tajo.catalog.Schema;
 import org.apache.tajo.catalog.statistics.TableStats;
 import org.apache.tajo.worker.TaskAttemptContext;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 import java.io.IOException;
 
@@ -100,14 +102,14 @@ public abstract class UnaryPhysicalExec extends PhysicalExec {
   }
 
   @Override
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
+  public ObjectNode toJsonObject() {
+    ObjectNode obj = JsonNodeFactory.instance.objectNode();
 
-    sb.append(super.toJsonString()).append(',');
+    obj.put("name", this.getClass().getName());
 
     if (child != null)
-      sb.append(child.toJsonString());
+      obj.put("child", child.toJsonObject());
 
-    return sb.toString();
+    return obj;
   }
 }

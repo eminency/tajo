@@ -31,6 +31,8 @@ import org.apache.tajo.engine.planner.logical.GroupbyNode;
 import org.apache.tajo.storage.Tuple;
 import org.apache.tajo.storage.VTuple;
 import org.apache.tajo.worker.TaskAttemptContext;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 import java.io.IOException;
 import java.util.*;
@@ -475,14 +477,14 @@ public class DistinctGroupbyFirstAggregationExec extends PhysicalExec {
   }
 
   @Override
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
+  public ObjectNode toJsonObject() {
+    ObjectNode obj = JsonNodeFactory.instance.objectNode();
 
-    sb.append(super.toJsonString());
+    obj.put("name", this.getClass().getName());
 
     if (child != null)
-      sb.append(child.toJsonString());
+      obj.put("child", child.toJsonObject());
 
-    return sb.toString();
+    return obj;
   }
 }

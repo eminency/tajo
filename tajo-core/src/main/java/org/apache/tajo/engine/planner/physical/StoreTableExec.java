@@ -33,6 +33,8 @@ import org.apache.tajo.storage.StorageManagerFactory;
 import org.apache.tajo.storage.Tuple;
 import org.apache.tajo.unit.StorageUnit;
 import org.apache.tajo.worker.TaskAttemptContext;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 import java.io.IOException;
 
@@ -161,13 +163,16 @@ public class StoreTableExec extends UnaryPhysicalExec {
   }
 
   @Override
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
+  public ObjectNode toJsonObject() {
+    ObjectNode obj = JsonNodeFactory.instance.objectNode();
 
-    sb.append("{\"name\":\"StoreTableExec\",");
-    sb.append("\"StoreType':\"").append(meta.getStoreType().name()).append("\"},");
-    sb.append(child.toJsonString());
+    obj.put("name", "StoreTableExec");
 
-    return sb.toString();
+    obj.put("StoreType", meta.getStoreType().name());
+
+    if (child != null)
+      obj.put("child", child.toJsonObject());
+
+    return obj;
   }
 }

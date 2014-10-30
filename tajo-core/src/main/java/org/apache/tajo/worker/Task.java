@@ -433,7 +433,6 @@ public class Task {
   }
 
   private native void runJsonPlan(String jstr);
-  public native void test();
 
   public void run() throws Exception {
     startTime = System.currentTimeMillis();
@@ -454,12 +453,7 @@ public class Task {
       this.executor = executionBlockContext.getTQueryEngine().createPlan(context, plan);
       this.executor.init();
 
-      String planJsonStr = '['+executor.toJsonString()+']';
-      LOG.info("plan json : ");
-      LOG.info(planJsonStr);
-
-      test();
-      runJsonPlan(planJsonStr);
+      runJsonPlan(executor.toJsonObject().toString());
 
       while(!killed && !aborted && executor.next() != null) {
       }

@@ -23,6 +23,13 @@ import org.apache.tajo.catalog.Schema;
 import org.apache.tajo.engine.eval.AggregationFunctionCallEval;
 import org.apache.tajo.engine.planner.logical.GroupbyNode;
 import org.apache.tajo.worker.TaskAttemptContext;
+import org.codehaus.jackson.JsonFactory;
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.JsonParser;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.node.ArrayNode;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 import java.io.IOException;
 
@@ -69,5 +76,41 @@ public abstract class AggregationExec extends UnaryPhysicalExec {
   public void close() throws IOException {
     super.close();
     plan = null;
+  }
+
+  @Override
+  public ObjectNode toJsonObject() {
+    ObjectNode obj = JsonNodeFactory.instance.objectNode();
+    ArrayNode groupKeyArr = JsonNodeFactory.instance.arrayNode();
+    ArrayNode funcArr = JsonNodeFactory.instance.arrayNode();
+
+    obj.put("name", this.getClass().getName());
+
+    for (int groupId: groupingKeyIds)
+      groupKeyArr.add(groupId);
+
+    obj.put("groupingKeyIds", groupKeyArr);
+
+    if (plan.hasAggFunctions()) {
+      JsonFactory factory = new JsonFactory();
+      ObjectMapper mapper = new ObjectMapper();
+
+      for (AggregationFunctionCallEval func: aggFunctions) {
+        try {
+          JsonParser parser = factory.createJsonParser(func.toJson());
+          JsonNode node = mapper.readTree(parser);
+          funcArr.add(node);
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+
+    obj.put("funcs", funcArr);
+
+    if (child != null)
+      obj.put("child", child.toJsonObject());
+
+    return obj;
   }
 }

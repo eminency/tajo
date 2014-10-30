@@ -347,7 +347,7 @@ public class SeqScanExec extends PhysicalExec {
   }
 
   @Override
-  public String toJsonString() {
+  public ObjectNode toJsonObject() {
     JsonNodeFactory factory = JsonNodeFactory.instance;
 
     ObjectNode tree = factory.objectNode();
@@ -356,6 +356,6 @@ public class SeqScanExec extends PhysicalExec {
     tree.put("scanner", scanner.toJsonObject());
     tree.put("projector", projector.toJsonObject());
 
-    return tree.toString();
+    return tree;
   }
 }

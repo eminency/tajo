@@ -27,6 +27,8 @@ import org.apache.tajo.catalog.statistics.TableStats;
 import org.apache.tajo.engine.codegen.CompilationError;
 import org.apache.tajo.storage.Tuple;
 import org.apache.tajo.worker.TaskAttemptContext;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -86,11 +88,11 @@ public abstract class PhysicalExec implements SchemaObject {
     return null;
   }
 
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
+  public org.codehaus.jackson.node.ObjectNode toJsonObject() {
+    ObjectNode obj = JsonNodeFactory.instance.objectNode();
 
-    sb.append("{\"name\":\"" + this.getClass().getName()+"\"}");
+    obj.put("name", this.getClass().getName());
 
-    return sb.toString();
+    return obj;
   }
 }

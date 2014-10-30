@@ -72,19 +72,17 @@ public class Projector {
 
   public ArrayNode toJsonObject() {
     StringBuffer sb = new StringBuffer();
-    ObjectNode obj = JsonNodeFactory.instance.objectNode();
     ArrayNode array = JsonNodeFactory.instance.arrayNode();
 
+    JsonFactory factory = new JsonFactory();
+    ObjectMapper mapper = new ObjectMapper();
+
     for (EvalNode ev:evals) {
-      JsonFactory factory = new JsonFactory();
       try {
         JsonParser parser = factory.createJsonParser(ev.toJson());
-        ObjectMapper mapper = new ObjectMapper();
         JsonNode node = mapper.readTree(parser);
 
         array.add(node);
-
-
       } catch (IOException e) {
         e.printStackTrace();
       }

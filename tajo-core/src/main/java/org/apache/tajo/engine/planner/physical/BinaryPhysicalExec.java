@@ -21,6 +21,8 @@ package org.apache.tajo.engine.planner.physical;
 import org.apache.tajo.catalog.statistics.TableStats;
 import org.apache.tajo.worker.TaskAttemptContext;
 import org.apache.tajo.catalog.Schema;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 import java.io.IOException;
 
@@ -110,19 +112,17 @@ public abstract class BinaryPhysicalExec extends PhysicalExec {
   }
 
   @Override
-  public String toJsonString() {
-    StringBuffer sb = new StringBuffer();
+  public ObjectNode toJsonObject() {
+    ObjectNode obj = JsonNodeFactory.instance.objectNode();
 
-    sb.append("{\"name\":\""+this.getClass().getName()+'"');
+    obj.put("name", this.getClass().getName());
 
     if (leftChild != null)
-      sb.append(",\"left_child\":"+leftChild.toJsonString());
+      obj.put("leftChild", leftChild.toJsonObject());
 
     if (rightChild != null)
-      sb.append(",\"right_child\":"+rightChild.toJsonString());
+      obj.put("rightChild", rightChild.toJsonObject());
 
-    sb.append('}');
-
-    return sb.toString();
+    return obj;
   }
 }
