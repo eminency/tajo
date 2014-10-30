@@ -31,5 +31,5 @@ done
 
 for CLASS in $CLASSES
 do
-  javah -cp $CLASSPATH:./target/classes:../tajo-common/target/classes:../tajo-catalog/tajo-catalog-common/target/classes -d ./src/native/src/jni $CLASS
+  javah -cp $CLASSPATH:./target/classes:../tajo-common/target/classes:../tajo-catalog/tajo-catalog-common/target/classes $CLASS
 done
