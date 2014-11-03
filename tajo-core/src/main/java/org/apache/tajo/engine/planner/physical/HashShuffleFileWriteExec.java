@@ -32,6 +32,8 @@ import org.apache.tajo.storage.HashShuffleAppender;
 import org.apache.tajo.storage.HashShuffleAppenderManager;
 import org.apache.tajo.storage.Tuple;
 import org.apache.tajo.worker.TaskAttemptContext;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -170,5 +172,17 @@ public final class HashShuffleFileWriteExec extends UnaryPhysicalExec {
     plan = null;
 
     progress = 1.0f;
+  }
+
+  @Override
+  public ObjectNode toJsonObject() {
+    ObjectNode obj = JsonNodeFactory.instance.objectNode();
+
+    obj.put("name", "HashShuffleFileWriteExec");
+
+    if (child != null)
+      obj.put("child", child.toJsonObject());
+
+    return obj;
   }
 }

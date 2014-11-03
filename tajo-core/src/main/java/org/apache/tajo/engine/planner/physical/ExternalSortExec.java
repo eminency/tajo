@@ -840,4 +840,16 @@ public class ExternalSortExec extends SortExec {
       return inputStats;
     }
   }
+
+  @Override
+  public ObjectNode toJsonObject() {
+    ObjectNode obj = JsonNodeFactory.instance.objectNode();
+
+    obj.put("name", "ExternalSortExec");
+
+    if (child != null)
+      obj.put("child", child.toJsonObject());
+
+    return obj;
+  }
 }

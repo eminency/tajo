@@ -31,6 +31,8 @@ import org.apache.tajo.engine.planner.PlannerUtil;
 import org.apache.tajo.storage.*;
 import org.apache.tajo.storage.index.bst.BSTIndex;
 import org.apache.tajo.worker.TaskAttemptContext;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 import java.io.IOException;
 
@@ -127,5 +129,17 @@ public class RangeShuffleFileWriteExec extends UnaryPhysicalExec {
     context.addShuffleFileOutput(0, context.getTaskId().toString());
     appender = null;
     indexWriter = null;
+  }
+
+  @Override
+  public ObjectNode toJsonObject() {
+    ObjectNode obj = JsonNodeFactory.instance.objectNode();
+
+    obj.put("name", "RangeShuffleFileWriteExec");
+
+    if (child != null)
+      obj.put("child", child.toJsonObject());
+
+    return obj;
   }
 }

@@ -23,6 +23,8 @@ import org.apache.tajo.engine.planner.logical.GroupbyNode;
 import org.apache.tajo.storage.Tuple;
 import org.apache.tajo.storage.VTuple;
 import org.apache.tajo.worker.TaskAttemptContext;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -121,5 +123,17 @@ public class HashAggregateExec extends AggregationExec {
     hashTable.clear();
     hashTable = null;
     iterator = null;
+  }
+
+  @Override
+  public ObjectNode toJsonObject() {
+    ObjectNode obj = JsonNodeFactory.instance.objectNode();
+
+    obj.put("name", "HashAggregateExec");
+
+    if (child != null)
+      obj.put("child", child.toJsonObject());
+
+    return obj;
   }
 }
