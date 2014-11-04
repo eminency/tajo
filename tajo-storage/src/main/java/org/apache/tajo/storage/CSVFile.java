@@ -41,6 +41,7 @@ import org.apache.tajo.storage.exception.AlreadyExistsStorageException;
 import org.apache.tajo.storage.fragment.FileFragment;
 import org.apache.tajo.storage.rcfile.NonSyncByteArrayOutputStream;
 import org.apache.tajo.util.BytesUtils;
+import org.apache.tajo.util.JsonUtil;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 
@@ -588,6 +589,7 @@ public class CSVFile {
       obj.put("path", fragment.getPath().toString());
       obj.put("start", fragment.getStartKey());
       obj.put("length", fragment.getEndKey());
+      obj.put("schema", JsonUtil.stringToJSONNode(schema.toJson()));
 
       return obj;
     }
