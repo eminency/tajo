@@ -25,7 +25,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tajo.catalog.exception.AlreadyExistsFieldException;
 import org.apache.tajo.catalog.json.CatalogGsonHelper;
-import org.apache.tajo.catalog.proto.CatalogProtos;
 import org.apache.tajo.catalog.proto.CatalogProtos.ColumnProto;
 import org.apache.tajo.catalog.proto.CatalogProtos.SchemaProto;
 import org.apache.tajo.common.ProtoObject;
@@ -94,7 +93,7 @@ public class Schema implements ProtoObject<SchemaProto>, Cloneable, GsonObject {
    * @param qualifier The qualifier
    */
   public void setQualifier(String qualifier) {
-    Schema copy = null;
+    Schema copy;
     try {
       copy = (Schema) clone();
     } catch (CloneNotSupportedException e) {
@@ -171,8 +170,7 @@ public class Schema implements ProtoObject<SchemaProto>, Cloneable, GsonObject {
    * @return The Column matched to a given name.
    */
 	private Column getColumnByName(String columnName) {
-    String normalized = columnName;
-	  List<Integer> list = fieldsByName.get(normalized);
+	  List<Integer> list = fieldsByName.get(columnName);
 
     if (list == null || list.size() == 0) {
       return null;
@@ -291,13 +289,12 @@ public class Schema implements ProtoObject<SchemaProto>, Cloneable, GsonObject {
   }
 
   public synchronized Schema addColumn(String name, DataType dataType) {
-		String normalized = name;
-		if(fieldsByQualifiedName.containsKey(normalized)) {
-		  LOG.error("Already exists column " + normalized);
-			throw new AlreadyExistsFieldException(normalized);
+		if(fieldsByQualifiedName.containsKey(name)) {
+		  LOG.error("Already exists column " + name);
+			throw new AlreadyExistsFieldException(name);
 		}
 			
-		Column newCol = new Column(normalized, dataType);
+		Column newCol = new Column(name, dataType);
 		fields.add(newCol);
 		fieldsByQualifiedName.put(newCol.getQualifiedName(), fields.size() - 1);
     fieldsByName.put(newCol.getSimpleName(), TUtil.newList(fields.size() - 1));
@@ -331,7 +328,7 @@ public class Schema implements ProtoObject<SchemaProto>, Cloneable, GsonObject {
 	
   @Override
   public Object clone() throws CloneNotSupportedException {
-    Schema schema = null;
+    Schema schema;
 
     schema = (Schema) super.clone();
     schema.init();

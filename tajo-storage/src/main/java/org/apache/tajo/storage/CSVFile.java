@@ -52,7 +52,6 @@ import java.util.Arrays;
 public class CSVFile {
 
   public static final byte LF = '\n';
-  public static int EOF = -1;
 
   private static final Log LOG = LogFactory.getLog(CSVFile.class);
 
@@ -106,11 +105,7 @@ public class CSVFile {
       //determine the intermediate file type
       String store = conf.get(TajoConf.ConfVars.SHUFFLE_FILE_FORMAT.varname,
           TajoConf.ConfVars.SHUFFLE_FILE_FORMAT.defaultVal);
-      if (enabledStats && CatalogProtos.StoreType.CSV == CatalogProtos.StoreType.valueOf(store.toUpperCase())) {
-        isShuffle = true;
-      } else {
-        isShuffle = false;
-      }
+      isShuffle = enabledStats && CatalogProtos.StoreType.CSV == CatalogProtos.StoreType.valueOf(store.toUpperCase());
 
       if(this.meta.containsOption(StorageConstants.COMPRESSION_CODEC)) {
         String codecName = this.meta.getOption(StorageConstants.COMPRESSION_CODEC);
@@ -589,7 +584,14 @@ public class CSVFile {
       obj.put("path", fragment.getPath().toString());
       obj.put("start", fragment.getStartKey());
       obj.put("length", fragment.getEndKey());
-      obj.put("schema", JsonUtil.stringToJSONNode(schema.toJson()));
+
+      ObjectNode schemaNode = (ObjectNode)JsonUtil.stringToJSONNode(schema.toJson());
+
+      // remove useless information
+      schemaNode.remove("fieldsByQualifiedName");
+      schemaNode.remove("fieldsByName");
+
+      obj.put("schema", schemaNode);
 
       return obj;
     }
