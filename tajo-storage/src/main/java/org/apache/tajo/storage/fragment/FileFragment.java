@@ -24,6 +24,8 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.Path;
+import org.apache.tajo.catalog.json.CatalogGsonHelper;
+import org.apache.tajo.json.GsonObject;
 import org.apache.tajo.util.TUtil;
 
 import java.io.IOException;
@@ -34,14 +36,14 @@ import java.util.List;
 import static org.apache.tajo.catalog.proto.CatalogProtos.FileFragmentProto;
 import static org.apache.tajo.catalog.proto.CatalogProtos.FragmentProto;
 
-public class FileFragment implements Fragment, Comparable<FileFragment>, Cloneable {
+public class FileFragment implements Fragment, Comparable<FileFragment>, Cloneable, GsonObject {
   @Expose private String tableName; // required
   @Expose private Path uri; // required
   @Expose private Long startOffset; // required
   @Expose private Long length; // required
 
   private String[] hosts; // Datanode hostnames
-  @Expose private int[] diskIds;
+  private int[] diskIds;
 
   public FileFragment(ByteString raw) throws InvalidProtocolBufferException {
     FileFragmentProto.Builder builder = FileFragmentProto.newBuilder();
@@ -220,5 +222,9 @@ public class FileFragment implements Fragment, Comparable<FileFragment>, Cloneab
     fragmentBuilder.setId(this.tableName);
     fragmentBuilder.setContents(builder.buildPartial().toByteString());
     return fragmentBuilder.build();
+  }
+
+  public String toJson() {
+    return CatalogGsonHelper.toJson(this, FileFragment.class);
   }
 }

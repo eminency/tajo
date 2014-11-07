@@ -581,9 +581,6 @@ public class CSVFile {
 
       obj.put("name", "CSVScanner");
       obj.put("delimiter", String.valueOf(delimiter));
-      obj.put("path", fragment.getPath().toString());
-      obj.put("start", fragment.getStartKey());
-      obj.put("length", fragment.getEndKey());
 
       ObjectNode schemaNode = (ObjectNode)JsonUtil.stringToJSONNode(schema.toJson());
 
@@ -592,6 +589,7 @@ public class CSVFile {
       schemaNode.remove("fieldsByName");
 
       obj.put("schema", schemaNode);
+      obj.put("fragment", JsonUtil.stringToJSONNode(fragment.toJson()));
 
       return obj;
     }
