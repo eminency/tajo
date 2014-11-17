@@ -361,8 +361,7 @@ public class SeqScanExec extends PhysicalExec {
     if (projector != null)
       tree.put("projector", projector.toJsonObject());
 
-    if (plan.hasQual())
-      tree.put("qual", JsonUtil.stringToJSONNode(qual.toJson()));
+    tree.put("plan", JsonUtil.stringToJSONNode(plan.toJson()));
 
     return tree;
   }

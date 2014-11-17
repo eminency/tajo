@@ -582,6 +582,7 @@ public class CSVFile {
       obj.put("name", "CSVScanner");
       obj.put("delimiter", String.valueOf(delimiter));
 
+      /*
       ObjectNode schemaNode = (ObjectNode)JsonUtil.stringToJSONNode(schema.toJson());
 
       // remove useless information
@@ -589,6 +590,7 @@ public class CSVFile {
       schemaNode.remove("fieldsByName");
 
       obj.put("schema", schemaNode);
+      */
       obj.put("fragment", JsonUtil.stringToJSONNode(fragment.toJson()));
 
       return obj;
