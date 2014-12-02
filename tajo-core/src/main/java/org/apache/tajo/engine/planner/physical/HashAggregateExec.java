@@ -23,7 +23,6 @@ import org.apache.tajo.engine.planner.logical.GroupbyNode;
 import org.apache.tajo.storage.Tuple;
 import org.apache.tajo.storage.VTuple;
 import org.apache.tajo.worker.TaskAttemptContext;
-import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 
 import java.io.IOException;
@@ -37,13 +36,13 @@ import java.util.Map.Entry;
  */
 public class HashAggregateExec extends AggregationExec {
   private Tuple tuple = null;
-  private Map<Tuple, FunctionContext[]> hashTable;
+  private Map<Tuple, FunctionContext[]> grpKeyHashTable;
   private boolean computed = false;
   private Iterator<Entry<Tuple, FunctionContext []>> iterator = null;
 
   public HashAggregateExec(TaskAttemptContext ctx, GroupbyNode plan, PhysicalExec subOp) throws IOException {
     super(ctx, plan, subOp);
-    hashTable = new HashMap<Tuple, FunctionContext []>(100000);
+    grpKeyHashTable = new HashMap<Tuple, FunctionContext []>(100000);
     this.tuple = new VTuple(plan.getOutSchema().size());
   }
 
@@ -57,7 +56,7 @@ public class HashAggregateExec extends AggregationExec {
         keyTuple.put(i, tuple.get(groupingKeyIds[i]));
       }
 
-      FunctionContext [] contexts = hashTable.get(keyTuple);
+      FunctionContext [] contexts = grpKeyHashTable.get(keyTuple);
       if(contexts != null) {
         for(int i = 0; i < aggFunctions.length; i++) {
           aggFunctions[i].merge(contexts[i], inSchema, tuple);
@@ -68,18 +67,18 @@ public class HashAggregateExec extends AggregationExec {
           contexts[i] = aggFunctions[i].newContext();
           aggFunctions[i].merge(contexts[i], inSchema, tuple);
         }
-        hashTable.put(keyTuple, contexts);
+        grpKeyHashTable.put(keyTuple, contexts);
       }
     }
 
     // If HashAggregateExec received NullDatum and didn't has any grouping keys,
     // it should return primitive values for NullLDatum.
-    if (groupingKeyNum == 0 && aggFunctionsNum > 0 && hashTable.entrySet().size() == 0) {
+    if (groupingKeyNum == 0 && aggFunctionsNum > 0 && grpKeyHashTable.entrySet().size() == 0) {
       FunctionContext[] contexts = new FunctionContext[aggFunctionsNum];
       for(int i = 0; i < aggFunctionsNum; i++) {
         contexts[i] = aggFunctions[i].newContext();
       }
-      hashTable.put(null, contexts);
+      grpKeyHashTable.put(null, contexts);
     }
   }
 
@@ -87,7 +86,7 @@ public class HashAggregateExec extends AggregationExec {
   public Tuple next() throws IOException {
     if(!computed) {
       compute();
-      iterator = hashTable.entrySet().iterator();
+      iterator = grpKeyHashTable.entrySet().iterator();
       computed = true;
     }
 
@@ -114,25 +113,22 @@ public class HashAggregateExec extends AggregationExec {
 
   @Override
   public void rescan() throws IOException {
-    iterator = hashTable.entrySet().iterator();
+    iterator = grpKeyHashTable.entrySet().iterator();
   }
 
   @Override
   public void close() throws IOException {
     super.close();
-    hashTable.clear();
-    hashTable = null;
+    grpKeyHashTable.clear();
+    grpKeyHashTable = null;
     iterator = null;
   }
 
   @Override
   public ObjectNode toJsonObject() {
-    ObjectNode obj = JsonNodeFactory.instance.objectNode();
+    ObjectNode obj = super.toJsonObject();
 
     obj.put("name", "HashAggregateExec");
-
-    if (child != null)
-      obj.put("child", child.toJsonObject());
 
     return obj;
   }

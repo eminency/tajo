@@ -94,7 +94,7 @@ public abstract class AggregationExec extends UnaryPhysicalExec {
       }
     }
 
-    obj.put("funcs", funcArr);
+    obj.put("aggrFuncs", funcArr);
 
     if (child != null)
       obj.put("child", child.toJsonObject());
