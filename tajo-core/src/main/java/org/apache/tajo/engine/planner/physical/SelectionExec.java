@@ -22,18 +22,22 @@ import org.apache.tajo.engine.codegen.CompilationError;
 import org.apache.tajo.plan.expr.EvalNode;
 import org.apache.tajo.plan.logical.SelectionNode;
 import org.apache.tajo.storage.Tuple;
+import org.apache.tajo.util.StopWatch;
 import org.apache.tajo.worker.TaskAttemptContext;
 
 import java.io.IOException;
 
 public class SelectionExec extends UnaryPhysicalExec  {
   private EvalNode qual;
+  SelectionNode plan;
 
   public SelectionExec(TaskAttemptContext context,
                        SelectionNode plan,
                        PhysicalExec child) {
     super(context, plan.getInSchema(), plan.getOutSchema(), child);
     this.qual = plan.getQual();
+    stopWatch = new StopWatch(2);
+    this.plan = plan;
   }
 
   @Override
@@ -44,12 +48,27 @@ public class SelectionExec extends UnaryPhysicalExec  {
   @Override
   public Tuple next() throws IOException {
     Tuple tuple;
-    while (!context.isStopped() && (tuple = child.next()) != null) {
-      if (qual.eval(inSchema, tuple).isTrue()) {
-        return tuple;
-      }
-    }
 
-    return null;
+    stopWatch.reset(0);
+    try {
+      while (!context.isStopped() && (tuple = child.next()) != null) {
+        numInTuple++;
+        if (qual.eval(inSchema, tuple).isTrue()) {
+          numOutTuple++;
+          return tuple;
+        }
+      }
+
+      return null;
+    } finally {
+      nanoTimeNext += stopWatch.checkNano(0);
+    }
+  }
+
+  @Override
+  public void close() throws IOException {
+    int pid = plan.getPID();
+    super.close();
+    closeProfile(pid);
   }
 }

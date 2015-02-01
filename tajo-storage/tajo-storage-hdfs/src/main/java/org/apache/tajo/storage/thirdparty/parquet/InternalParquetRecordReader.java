@@ -20,6 +20,8 @@ package org.apache.tajo.storage.thirdparty.parquet;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.tajo.storage.ProfileContext;
+import org.apache.tajo.util.StopWatch;
 import parquet.Log;
 import parquet.column.ColumnDescriptor;
 import parquet.column.page.PageReadStore;
@@ -86,7 +88,20 @@ class InternalParquetRecordReader<T> {
       filter) {
     this.readSupport = readSupport;
     this.recordFilter = filter;
+
+    profileContext = ProfileContext.contextThreadLocal.get();
+    stopWatch = new StopWatch(2);
+    if (profileContext == null) {
+      profileContext = new ProfileContext.DummyProfileContext(false);
+    }
   }
+
+  private ProfileContext profileContext;
+  String profilePageKey = getClass().getSimpleName() + ".page";
+  String profileNextKey = getClass().getSimpleName() + ".next";
+  long nanoTimePage;
+  long nanoTimeNext;
+  StopWatch stopWatch;
 
   private void checkRead() throws IOException {
     if (current == totalCountLoadedSoFar) {
@@ -102,6 +117,7 @@ class InternalParquetRecordReader<T> {
 
       if (DEBUG) LOG.debug("at row " + current + ". reading next block");
       long t0 = System.currentTimeMillis();
+      stopWatch.reset(1);
       PageReadStore pages = reader.readNextRowGroup();
       if (pages == null) {
         throw new IOException("expecting more rows but reached last block. Read " + current + " out of " + total);
@@ -122,6 +138,14 @@ class InternalParquetRecordReader<T> {
   }
 
   public void close() throws IOException {
+    if (profileContext != null) {
+      profileContext.addProfileMetrics(
+          this.getClass().getSimpleName(),
+          new String[]{profileNextKey, profilePageKey},
+          new long[]{nanoTimeNext, nanoTimePage}
+      );
+    }
+
     reader.close();
   }
 
@@ -174,17 +198,22 @@ class InternalParquetRecordReader<T> {
   }
 
   public boolean nextKeyValue() throws IOException, InterruptedException {
-    if (current < total) {
-      try {
-        checkRead();
-        currentValue = recordReader.read();
-        if (DEBUG) LOG.debug("read value: " + currentValue);
-        current ++;
-      } catch (RuntimeException e) {
-        throw new ParquetDecodingException(format("Can not read value at %d in block %d in file %s", current, currentBlock, file), e);
+    stopWatch.reset(0);
+    try {
+      if (current < total) {
+        try {
+          checkRead();
+          currentValue = recordReader.read();
+          if (DEBUG) LOG.debug("read value: " + currentValue);
+          current++;
+        } catch (RuntimeException e) {
+          throw new ParquetDecodingException(format("Can not read value at %d in block %d in file %s", current, currentBlock, file), e);
+        }
+        return true;
       }
-      return true;
+      return false;
+    } finally {
+      nanoTimeNext += stopWatch.checkNano(0);
     }
-    return false;
   }
 }

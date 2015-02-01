@@ -30,8 +30,14 @@ import org.apache.tajo.QueryId;
 import org.apache.tajo.TaskAttemptId;
 import org.apache.tajo.TajoIdProtos;
 import org.apache.tajo.conf.TajoConf;
+import org.apache.tajo.engine.utils.QueryProfiler;
+import org.apache.tajo.engine.utils.QueryProfiler.QueryProfileMetrics;
 import org.apache.tajo.engine.query.QueryContext;
 import org.apache.tajo.ipc.TajoWorkerProtocol;
+import org.apache.tajo.ipc.TajoWorkerProtocol.QueryProfileDataListProto;
+import org.apache.tajo.ipc.TajoWorkerProtocol.QueryProfileDataListProto.Builder;
+import org.apache.tajo.ipc.TajoWorkerProtocol.QueryProfileDataListProto.EBQueryProfileData;
+import org.apache.tajo.ipc.TajoWorkerProtocol.QueryProfileDataListProto.QueryProfileMetricsProto;
 import org.apache.tajo.master.cluster.WorkerConnectionInfo;
 import org.apache.tajo.rpc.AsyncRpcServer;
 import org.apache.tajo.rpc.protocolrecords.PrimitiveProtos;
@@ -40,6 +46,9 @@ import org.apache.tajo.worker.event.TaskRunnerStartEvent;
 import org.apache.tajo.worker.event.TaskRunnerStopEvent;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class TajoWorkerManagerService extends CompositeService
     implements TajoWorkerProtocol.TajoWorkerProtocolService.Interface {
@@ -152,6 +161,25 @@ public class TajoWorkerManagerService extends CompositeService
     if(task != null) task.kill();
 
     done.run(TajoWorker.TRUE_PROTO);
+  }
+
+  public void getQueryProfileData(RpcController controller, TajoIdProtos.QueryIdProto request,
+                             RpcCallback<TajoWorkerProtocol.QueryProfileDataListProto> done) {
+    Map<ExecutionBlockId, List<QueryProfileMetrics>> profileMetrics = QueryProfiler.getProfileMetrics(new QueryId(request));
+    Builder builder = QueryProfileDataListProto.newBuilder();
+    if (profileMetrics != null) {
+      for (Map.Entry<ExecutionBlockId, List<QueryProfileMetrics>> entry : profileMetrics.entrySet()) {
+        List<QueryProfileMetricsProto> datas = new ArrayList<QueryProfileMetricsProto>();
+        for (QueryProfileMetrics eachMetricsData : entry.getValue()) {
+          datas.add(eachMetricsData.getProto());
+        }
+        builder.addEbProfileDatas(EBQueryProfileData.newBuilder()
+            .setExecutionBlockId(entry.getKey().toString())
+            .addAllProfileMetrics(datas)
+            .build());
+      }
+    }
+    done.run(builder.build());
   }
 
   @Override

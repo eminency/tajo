@@ -23,6 +23,7 @@ import org.apache.tajo.plan.function.FunctionContext;
 import org.apache.tajo.plan.logical.GroupbyNode;
 import org.apache.tajo.storage.Tuple;
 import org.apache.tajo.storage.VTuple;
+import org.apache.tajo.util.StopWatch;
 import org.apache.tajo.worker.TaskAttemptContext;
 
 import java.io.IOException;
@@ -49,10 +50,12 @@ public class SortAggregateExec extends AggregationExec {
   public SortAggregateExec(TaskAttemptContext context, GroupbyNode plan, PhysicalExec child) throws IOException {
     super(context, plan, child);
     contexts = new FunctionContext[plan.getAggFunctions() == null ? 0 : plan.getAggFunctions().length];
+    stopWatch = new StopWatch(10);
   }
 
   @Override
   public Tuple next() throws IOException {
+    stopWatch.reset(0);
     Tuple currentKey;
     Tuple tuple = null;
     Tuple outputTuple = null;
@@ -102,12 +105,14 @@ public class SortAggregateExec extends AggregationExec {
         }
 
         lastKey = currentKey;
+        this.nanoTimeNext += stopWatch.checkNano(0);
         return outputTuple;
       }
     } // while loop
 
     if (tuple == null && lastKey == null) {
       finished = true;
+      this.nanoTimeNext += stopWatch.checkNano(0);
       return null;
     }
     if (!finished) {
@@ -121,6 +126,7 @@ public class SortAggregateExec extends AggregationExec {
       }
       finished = true;
     }
+    this.nanoTimeNext += stopWatch.checkNano(0);
     return outputTuple;
   }
 
@@ -130,5 +136,14 @@ public class SortAggregateExec extends AggregationExec {
 
     lastKey = null;
     finished = false;
+  }
+
+  @Override
+  public void close() throws IOException {
+    int pid = plan.getPID();
+    super.close();
+    plan = null;
+
+    closeProfile(pid);
   }
 }

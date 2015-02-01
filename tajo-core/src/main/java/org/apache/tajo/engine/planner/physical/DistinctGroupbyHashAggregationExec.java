@@ -29,6 +29,7 @@ import org.apache.tajo.plan.logical.DistinctGroupbyNode;
 import org.apache.tajo.plan.logical.GroupbyNode;
 import org.apache.tajo.storage.Tuple;
 import org.apache.tajo.storage.VTuple;
+import org.apache.tajo.util.StopWatch;
 import org.apache.tajo.worker.TaskAttemptContext;
 
 import java.io.IOException;
@@ -57,6 +58,7 @@ public class DistinctGroupbyHashAggregationExec extends PhysicalExec {
 
     this.child = subOp;
     this.child.init();
+    this.plan = plan;
 
     List<Integer> distinctGroupingKeyIdList = new ArrayList<Integer>();
     for (Column col: plan.getGroupingColumns()) {
@@ -101,6 +103,7 @@ public class DistinctGroupbyHashAggregationExec extends PhysicalExec {
     for(int i = 0; i < resultColumnIds.length; i++) {
       resultColumnIdIndexes[resultColumnIds[i]] = i;
     }
+    stopWatch = new StopWatch(10);
   }
 
   List<Tuple> currentAggregatedTuples = null;
@@ -112,6 +115,7 @@ public class DistinctGroupbyHashAggregationExec extends PhysicalExec {
     if (finished) {
       return null;
     }
+    stopWatch.reset(0);
     if (first) {
       loadChildHashTable();
 
@@ -120,7 +124,9 @@ public class DistinctGroupbyHashAggregationExec extends PhysicalExec {
     }
 
     if (currentAggregatedTuples != null && currentAggregatedTupleIndex < currentAggregatedTupleSize) {
-      return currentAggregatedTuples.get(currentAggregatedTupleIndex++);
+      Tuple result = currentAggregatedTuples.get(currentAggregatedTupleIndex++);
+      nanoTimeNext += stopWatch.checkNano(0);
+      return result;
     }
 
     Tuple distinctGroupingKey = null;
@@ -169,6 +175,7 @@ public class DistinctGroupbyHashAggregationExec extends PhysicalExec {
         for (int i = 0; i < tuple.size(); i++) {
           tuple.put(i, DatumFactory.createNullDatum());
         }
+        nanoTimeNext += stopWatch.checkNano(0);
         return tuple;
       } else {
         return null;
@@ -267,6 +274,7 @@ public class DistinctGroupbyHashAggregationExec extends PhysicalExec {
     fetchedRows++;
     Tuple tuple = currentAggregatedTuples.get(currentAggregatedTupleIndex++);
 
+    nanoTimeNext += stopWatch.checkNano(0);
     return tuple;
   }
 
@@ -286,6 +294,7 @@ public class DistinctGroupbyHashAggregationExec extends PhysicalExec {
 
   @Override
   public void close() throws IOException {
+    int pid = plan.getPID();
     plan = null;
     if (hashAggregators != null) {
       for (int i = 0; i < hashAggregators.length; i++) {
@@ -295,6 +304,7 @@ public class DistinctGroupbyHashAggregationExec extends PhysicalExec {
     if (child != null) {
       child.close();
     }
+    closeProfile(pid);
   }
 
   @Override

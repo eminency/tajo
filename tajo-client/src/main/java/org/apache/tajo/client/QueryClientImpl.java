@@ -36,6 +36,7 @@ import org.apache.tajo.jdbc.TajoMemoryResultSet;
 import org.apache.tajo.jdbc.TajoResultSet;
 import org.apache.tajo.rpc.NettyClientBase;
 import org.apache.tajo.rpc.ServerCallable;
+import org.apache.tajo.rpc.protocolrecords.PrimitiveProtos.StringProto;
 import org.apache.tajo.util.ProtoUtil;
 
 import java.io.IOException;
@@ -629,5 +630,28 @@ public class QueryClientImpl implements QueryClient {
         }
       }
     }.withRetries();
+  }
+
+  public String getQueryProfileJSONString(final QueryId queryId) throws ServiceException {
+    final QueryInfoProto queryInfo = getQueryInfo(queryId);
+
+    if (queryInfo.getHostNameOfQM() == null || queryInfo.getQueryMasterClientPort() == 0) {
+      return null;
+    }
+    InetSocketAddress qmAddress = new InetSocketAddress(
+      queryInfo.getHostNameOfQM(), queryInfo.getQueryMasterClientPort());
+
+    StringProto sproto = new ServerCallable<StringProto>(connection.connPool, qmAddress,
+      QueryMasterClientProtocol.class, false, true) {
+
+      public StringProto call(NettyClientBase client) throws ServiceException {
+        connection.checkSessionAndGet(client);
+
+        QueryMasterClientProtocolService.BlockingInterface qmService = client.getStub();
+        return qmService.getQueryProfileJSONString(null, queryId.getProto());
+      }
+    }.withRetries();
+
+    return sproto.getValue();
   }
 }

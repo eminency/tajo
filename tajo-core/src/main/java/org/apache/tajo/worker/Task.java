@@ -188,7 +188,7 @@ public class Task {
       if (request.getFetches().size() > 0) {
         inputTableBaseDir = localFS.makeQualified(
             executionBlockContext.getLocalDirAllocator().getLocalPathForWrite(
-                getTaskAttemptDir(context.getTaskId()).toString(), systemConf));
+                getTaskAttemptDir(context.getTaskAttemptId()).toString(), systemConf));
         localFS.mkdirs(inputTableBaseDir);
         Path tableDir;
         for (String inputTable : context.getInputTables()) {
@@ -217,7 +217,7 @@ public class Task {
   }
 
   public TaskAttemptId getId() {
-    return context.getTaskId();
+    return context.getTaskAttemptId();
   }
 
   public TaskAttemptState getStatus() {
@@ -267,14 +267,14 @@ public class Task {
         executionBlockContext.getTasks().remove(this.getId());
       }
     } else {
-      LOG.error("TaskAttemptId: " + context.getTaskId() + " status: " + context.getState());
+      LOG.error("TaskAttemptId: " + context.getTaskAttemptId() + " status: " + context.getState());
     }
   }
 
   public TaskStatusProto getReport() {
     TaskStatusProto.Builder builder = TaskStatusProto.newBuilder();
     builder.setWorkerName(executionBlockContext.getWorkerContext().getConnectionInfo().getHostAndPeerRpcPort());
-    builder.setId(context.getTaskId().getProto())
+    builder.setId(context.getTaskAttemptId().getProto())
         .setProgress(context.getProgress())
         .setState(context.getState());
 
@@ -321,7 +321,7 @@ public class Task {
 
   private TaskCompletionReport getTaskCompletionReport() {
     TaskCompletionReport.Builder builder = TaskCompletionReport.newBuilder();
-    builder.setId(context.getTaskId().getProto());
+    builder.setId(context.getTaskAttemptId().getProto());
 
     builder.setInputStats(reloadInputStats());
 
@@ -357,7 +357,7 @@ public class Task {
 
   private void waitForFetch() throws InterruptedException, IOException {
     context.getFetchLatch().await();
-    LOG.info(context.getTaskId() + " All fetches are done!");
+    LOG.info(context.getTaskAttemptId() + " All fetches are done!");
     Collection<String> inputs = Lists.newArrayList(context.getInputTables());
 
     // Get all broadcasted tables
@@ -452,7 +452,7 @@ public class Task {
         queryMasterStub.done(null, report, NullCallback.get());
       }
       finishTime = System.currentTimeMillis();
-      LOG.info(context.getTaskId() + " completed. " +
+      LOG.info(context.getTaskAttemptId() + " completed. " +
           "Worker's task counter - total:" + executionBlockContext.completedTasksNum.intValue() +
           ", succeeded: " + executionBlockContext.succeededTasksNum.intValue()
           + ", killed: " + executionBlockContext.killedTasksNum.intValue()
@@ -661,7 +661,7 @@ public class Task {
       ClientSocketChannelFactory channelFactory = executionBlockContext.getShuffleChannelFactory();
       Timer timer = executionBlockContext.getRPCTimer();
       Path inputDir = executionBlockContext.getLocalDirAllocator().
-          getLocalPathToRead(getTaskAttemptDir(ctx.getTaskId()).toString(), systemConf);
+          getLocalPathToRead(getTaskAttemptDir(ctx.getTaskAttemptId()).toString(), systemConf);
 
       int i = 0;
       File storeDir;

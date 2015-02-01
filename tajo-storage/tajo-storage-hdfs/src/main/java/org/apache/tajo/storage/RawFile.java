@@ -36,6 +36,7 @@ import org.apache.tajo.datum.ProtobufDatumFactory;
 import org.apache.tajo.storage.fragment.Fragment;
 import org.apache.tajo.unit.StorageUnit;
 import org.apache.tajo.util.BitArray;
+import org.apache.tajo.util.StopWatch;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -69,6 +70,7 @@ public class RawFile {
     private long totalReadBytes;
     private long filePosition;
     private boolean forceFillBuffer;
+    private ProfileContext profileContext;
 
     public RawFileScanner(Configuration conf, Schema schema, TableMeta meta, Fragment fragment) throws IOException {
       super(conf, schema, meta, fragment);
@@ -104,6 +106,13 @@ public class RawFile {
       }
 
       tuple = new VTuple(columnTypes.length);
+
+      profileContext = ProfileContext.contextThreadLocal.get();
+      stopWatch = new StopWatch(4);
+      if (profileContext == null) {
+        profileContext = new ProfileContext.DummyProfileContext(false);
+      }
+
       nullFlags = new BitArray(schema.size());
       headerSize = RECORD_SIZE + 2 + nullFlags.bytesLength(); // The middle 2 bytes is for NullFlagSize
 
@@ -123,6 +132,7 @@ public class RawFile {
 
     @Override
     public void seek(long offset) throws IOException {
+      stopWatch.reset(3);
       eos = false;
       filePosition = channel.position();
 
@@ -140,6 +150,7 @@ public class RawFile {
         forceFillBuffer = true;
         fillBuffer();
       }
+      nanoTimeSeek += stopWatch.checkNano(3);
     }
 
     private boolean fillBuffer() throws IOException {
@@ -240,145 +251,170 @@ public class RawFile {
       throw new IOException("Invalid Variable int64");
     }
 
+    String profileNextKey = getClass().getSimpleName() + ".next";
+    String profileReadKey = getClass().getSimpleName() + ".read";
+    String profileSeekKey = getClass().getSimpleName() + ".seek";
+    String profileMakeTupleKey = getClass().getSimpleName() + ".makeTuple";
+    long nanoTimeNext;
+    long nanoTimeRead;
+    long numInTuple;
+    long nanoTimeSeek;
+    long nanoTimeMakeTuple;
+    StopWatch stopWatch;
+
     @Override
     public Tuple next() throws IOException {
-      if(eos) return null;
+      stopWatch.reset(0);
+      try {
+        if (eos) return null;
 
-      if (forceFillBuffer || buffer.remaining() < headerSize) {
-        if (!fillBuffer()) {
-          return null;
-        }
-      }
-
-      // backup the buffer state
-      int bufferLimit = buffer.limit();
-      int recordSize = buffer.getInt();
-      int nullFlagSize = buffer.getShort();
-
-      buffer.limit(buffer.position() + nullFlagSize);
-      nullFlags.fromByteBuffer(buffer);
-      // restore the start of record contents
-      buffer.limit(bufferLimit);
-      if (buffer.remaining() < (recordSize - headerSize)) {
-
-        //if the buffer reaches the writable size, the buffer increase the record size
-        reSizeBuffer(recordSize);
-
-        if (!fillBuffer()) {
-          return null;
-        }
-      }
-
-      for (int i = 0; i < columnTypes.length; i++) {
-        // check if the i'th column is null
-        if (nullFlags.get(i)) {
-          tuple.put(i, DatumFactory.createNullDatum());
-          continue;
+        stopWatch.reset(1);
+        if (forceFillBuffer || buffer.remaining() < headerSize) {
+          if (!fillBuffer()) {
+            return null;
+          }
         }
 
-        switch (columnTypes[i].getType()) {
-          case BOOLEAN :
-            tuple.put(i, DatumFactory.createBool(buffer.get()));
-            break;
+        // backup the buffer state
+        int bufferLimit = buffer.limit();
+        int recordSize = buffer.getInt();
+        int nullFlagSize = buffer.getShort();
 
-          case BIT :
-            tuple.put(i, DatumFactory.createBit(buffer.get()));
-            break;
+        buffer.limit(buffer.position() + nullFlagSize);
+        nullFlags.fromByteBuffer(buffer);
+        // restore the start of record contents
+        buffer.limit(bufferLimit);
+        if (buffer.remaining() < (recordSize - headerSize)) {
 
-          case CHAR :
-            int realLen = readRawVarint32();
-            byte[] buf = new byte[realLen];
-            buffer.get(buf);
-            tuple.put(i, DatumFactory.createChar(buf));
-            break;
+          //if the buffer reaches the writable size, the buffer increase the record size
+          reSizeBuffer(recordSize);
 
-          case INT2 :
-            tuple.put(i, DatumFactory.createInt2(buffer.getShort()));
-            break;
+          if (!fillBuffer()) {
+            return null;
+          }
+        }
+        long nanoTime = stopWatch.checkNano(1);
+        nanoTimeRead += nanoTime;
 
-          case INT4 :
-            tuple.put(i, DatumFactory.createInt4(decodeZigZag32(readRawVarint32())));
-            break;
-
-          case INT8 :
-            tuple.put(i, DatumFactory.createInt8(decodeZigZag64(readRawVarint64())));
-            break;
-
-          case FLOAT4 :
-            tuple.put(i, DatumFactory.createFloat4(buffer.getFloat()));
-            break;
-
-          case FLOAT8 :
-            tuple.put(i, DatumFactory.createFloat8(buffer.getDouble()));
-            break;
-
-          case TEXT : {
-            int len = readRawVarint32();
-            byte [] strBytes = new byte[len];
-            buffer.get(strBytes);
-            tuple.put(i, DatumFactory.createText(strBytes));
-            break;
+        stopWatch.reset(2);
+        for (int i = 0; i < columnTypes.length; i++) {
+          // check if the i'th column is null
+          if (nullFlags.get(i)) {
+            tuple.put(i, DatumFactory.createNullDatum());
+            continue;
           }
 
-          case BLOB : {
-            int len = readRawVarint32();
-            byte [] rawBytes = new byte[len];
-            buffer.get(rawBytes);
-            tuple.put(i, DatumFactory.createBlob(rawBytes));
-            break;
-          }
+          switch (columnTypes[i].getType()) {
+            case BOOLEAN:
+              tuple.put(i, DatumFactory.createBool(buffer.get()));
+              break;
 
-          case PROTOBUF: {
-            int len = readRawVarint32();
-            byte [] rawBytes = new byte[len];
-            buffer.get(rawBytes);
+            case BIT:
+              tuple.put(i, DatumFactory.createBit(buffer.get()));
+              break;
 
-            ProtobufDatumFactory factory = ProtobufDatumFactory.get(columnTypes[i]);
-            Message.Builder builder = factory.newBuilder();
-            builder.mergeFrom(rawBytes);
-            tuple.put(i, factory.createDatum(builder.build()));
-            break;
-          }
+            case CHAR:
+              int realLen = readRawVarint32();
+              byte[] buf = new byte[realLen];
+              buffer.get(buf);
+              tuple.put(i, DatumFactory.createChar(buf));
+              break;
 
-          case INET4 :
-            byte [] ipv4Bytes = new byte[4];
-            buffer.get(ipv4Bytes);
-            tuple.put(i, DatumFactory.createInet4(ipv4Bytes));
-            break;
+            case INT2:
+              tuple.put(i, DatumFactory.createInt2(buffer.getShort()));
+              break;
 
-          case DATE: {
-            int val = buffer.getInt();
-            if (val < Integer.MIN_VALUE + 1) {
-              tuple.put(i, DatumFactory.createNullDatum());
-            } else {
-              tuple.put(i, DatumFactory.createFromInt4(columnTypes[i], val));
+            case INT4:
+              tuple.put(i, DatumFactory.createInt4(decodeZigZag32(readRawVarint32())));
+              break;
+
+            case INT8:
+              tuple.put(i, DatumFactory.createInt8(decodeZigZag64(readRawVarint64())));
+              break;
+
+            case FLOAT4:
+              tuple.put(i, DatumFactory.createFloat4(buffer.getFloat()));
+              break;
+
+            case FLOAT8:
+              tuple.put(i, DatumFactory.createFloat8(buffer.getDouble()));
+              break;
+
+            case TEXT: {
+              int len = readRawVarint32();
+              byte[] strBytes = new byte[len];
+              buffer.get(strBytes);
+              tuple.put(i, DatumFactory.createText(strBytes));
+              break;
             }
-            break;
-          }
-          case TIME:
-          case TIMESTAMP: {
-            long val = buffer.getLong();
-            if (val < Long.MIN_VALUE + 1) {
-              tuple.put(i, DatumFactory.createNullDatum());
-            } else {
-              tuple.put(i, DatumFactory.createFromInt8(columnTypes[i], val));
+
+            case BLOB: {
+              int len = readRawVarint32();
+              byte[] rawBytes = new byte[len];
+              buffer.get(rawBytes);
+              tuple.put(i, DatumFactory.createBlob(rawBytes));
+              break;
             }
-            break;
+
+            case PROTOBUF: {
+              int len = readRawVarint32();
+              byte[] rawBytes = new byte[len];
+              buffer.get(rawBytes);
+
+              ProtobufDatumFactory factory = ProtobufDatumFactory.get(columnTypes[i]);
+              Message.Builder builder = factory.newBuilder();
+              builder.mergeFrom(rawBytes);
+              tuple.put(i, factory.createDatum(builder.build()));
+              break;
+            }
+
+            case INET4:
+              byte[] ipv4Bytes = new byte[4];
+              buffer.get(ipv4Bytes);
+              tuple.put(i, DatumFactory.createInet4(ipv4Bytes));
+              break;
+
+            case DATE: {
+              int val = buffer.getInt();
+              if (val < Integer.MIN_VALUE + 1) {
+                tuple.put(i, DatumFactory.createNullDatum());
+              } else {
+                tuple.put(i, DatumFactory.createFromInt4(columnTypes[i], val));
+              }
+              break;
+            }
+            case TIME:
+            case TIMESTAMP: {
+              long val = buffer.getLong();
+              if (val < Long.MIN_VALUE + 1) {
+                tuple.put(i, DatumFactory.createNullDatum());
+              } else {
+                tuple.put(i, DatumFactory.createFromInt8(columnTypes[i], val));
+              }
+              break;
+            }
+            case NULL_TYPE:
+              tuple.put(i, NullDatum.get());
+              break;
+
+            default:
           }
-          case NULL_TYPE:
-            tuple.put(i, NullDatum.get());
-            break;
-
-          default:
         }
-      }
 
-      recordCount++;
+        recordCount++;
 
-      if(filePosition - buffer.remaining() >= endOffset){
-        eos = true;
+        if (filePosition - buffer.remaining() >= endOffset) {
+          eos = true;
+        }
+        VTuple result = new VTuple(tuple);
+        nanoTime = stopWatch.checkNano(2);
+        nanoTimeMakeTuple += nanoTime;
+        return result;
+      } finally {
+        long nanoTime = stopWatch.checkNano(0);
+        nanoTimeNext += nanoTime;
+        numInTuple++;
       }
-      return new VTuple(tuple);
     }
 
     private void reSizeBuffer(int writableBytes){
@@ -413,6 +449,13 @@ public class RawFile {
       }
 
       IOUtils.cleanup(LOG, channel, fis);
+      if (profileContext != null) {
+        profileContext.addProfileMetrics(
+            this.getClass().getSimpleName(),
+            new String[]{profileNextKey, profileReadKey, profileSeekKey, profileMakeTupleKey, getClass().getSimpleName() + ".numInTuple"},
+            new long[]{nanoTimeNext, nanoTimeRead, nanoTimeSeek, nanoTimeMakeTuple, numInTuple}
+        );
+      }
     }
 
     @Override

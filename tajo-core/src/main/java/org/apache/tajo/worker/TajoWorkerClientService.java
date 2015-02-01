@@ -26,6 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.tajo.QueryId;
+import org.apache.tajo.TajoIdProtos;
 import org.apache.tajo.conf.TajoConf;
 import org.apache.tajo.ipc.ClientProtos.GetQueryHistoryResponse;
 import org.apache.tajo.ipc.ClientProtos.QueryIdRequest;
@@ -33,7 +34,7 @@ import org.apache.tajo.ipc.ClientProtos.ResultCode;
 import org.apache.tajo.ipc.QueryMasterClientProtocol;
 import org.apache.tajo.querymaster.QueryMasterTask;
 import org.apache.tajo.rpc.BlockingRpcServer;
-import org.apache.tajo.rpc.protocolrecords.PrimitiveProtos;
+import org.apache.tajo.rpc.protocolrecords.PrimitiveProtos.*;
 import org.apache.tajo.util.NetUtils;
 import org.apache.tajo.util.history.QueryHistory;
 
@@ -41,10 +42,8 @@ import java.net.InetSocketAddress;
 
 public class TajoWorkerClientService extends AbstractService {
   private static final Log LOG = LogFactory.getLog(TajoWorkerClientService.class);
-  private final PrimitiveProtos.BoolProto BOOL_TRUE =
-          PrimitiveProtos.BoolProto.newBuilder().setValue(true).build();
-  private final PrimitiveProtos.BoolProto BOOL_FALSE =
-          PrimitiveProtos.BoolProto.newBuilder().setValue(false).build();
+  private final BoolProto BOOL_TRUE = BoolProto.newBuilder().setValue(true).build();
+  private final BoolProto BOOL_FALSE = BoolProto.newBuilder().setValue(false).build();
 
   private BlockingRpcServer rpcServer;
   private InetSocketAddress bindAddr;
@@ -134,6 +133,19 @@ public class TajoWorkerClientService extends AbstractService {
         LOG.warn(t.getMessage(), t);
         builder.setResultCode(ResultCode.ERROR);
         builder.setErrorMessage(org.apache.hadoop.util.StringUtils.stringifyException(t));
+      }
+
+      return builder.build();
+    }
+
+    @Override
+    public StringProto getQueryProfileJSONString(RpcController controller, TajoIdProtos.QueryIdProto request) throws ServiceException {
+      StringProto.Builder builder = StringProto.newBuilder();
+
+      try {
+        builder.setValue(workerContext.getQueryMaster().getQueryProfileJSONString(new QueryId(request)));
+      } catch (Exception e) {
+        builder.setValue("Error:"+e.getStackTrace());
       }
 
       return builder.build();

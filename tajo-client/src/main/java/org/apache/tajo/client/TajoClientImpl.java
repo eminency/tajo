@@ -225,4 +225,9 @@ public class TajoClientImpl extends SessionConnection implements TajoClient, Que
   public List<CatalogProtos.FunctionDescProto> getFunctions(final String functionName) throws ServiceException {
     return catalogClient.getFunctions(functionName);
   }
+
+  @Override
+  public String getQueryProfileJSONString(QueryId queryId) throws ServiceException {
+    return queryClient.getQueryProfileJSONString(queryId);
+  }
 }

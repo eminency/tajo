@@ -358,6 +358,8 @@ public class TajoConf extends Configuration {
 
     // ResultSet ---------------------------------------------------------
     $RESULT_SET_FETCH_ROWNUM("tajo.resultset.fetch.rownum", 200),
+
+    ENABLE_QUERY_PROFILE("tajo.enable.query.profile", true)
     ;
 
     public final String varname;

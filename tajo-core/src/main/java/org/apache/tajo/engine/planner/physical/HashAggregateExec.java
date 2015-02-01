@@ -22,6 +22,7 @@ import org.apache.tajo.plan.function.FunctionContext;
 import org.apache.tajo.plan.logical.GroupbyNode;
 import org.apache.tajo.storage.Tuple;
 import org.apache.tajo.storage.VTuple;
+import org.apache.tajo.util.StopWatch;
 import org.apache.tajo.worker.TaskAttemptContext;
 
 import java.io.IOException;
@@ -43,12 +44,21 @@ public class HashAggregateExec extends AggregationExec {
     super(ctx, plan, subOp);
     hashTable = new HashMap<Tuple, FunctionContext []>(100000);
     this.tuple = new VTuple(plan.getOutSchema().size());
+    stopWatch = new StopWatch(4);
   }
+
+  private long nanoTimeCompute;
+  private long nanoTimeJoin;
+  private long numCompute;
 
   private void compute() throws IOException {
     Tuple tuple;
     Tuple keyTuple;
+    stopWatch.reset(2); //compute
     while(!context.isStopped() && (tuple = child.next()) != null) {
+      numCompute++;
+      numInTuple++;
+      stopWatch.reset(3); //join
       keyTuple = new VTuple(groupingKeyIds.length);
       // build one key tuple
       for(int i = 0; i < groupingKeyIds.length; i++) {
@@ -68,6 +78,7 @@ public class HashAggregateExec extends AggregationExec {
         }
         hashTable.put(keyTuple, contexts);
       }
+      nanoTimeJoin += stopWatch.checkNano(3); //join
     }
 
     // If HashAggregateExec received NullDatum and didn't has any grouping keys,
@@ -79,34 +90,40 @@ public class HashAggregateExec extends AggregationExec {
       }
       hashTable.put(null, contexts);
     }
+    nanoTimeCompute += stopWatch.checkNano(2);
   }
 
   @Override
   public Tuple next() throws IOException {
-    if(!computed) {
-      compute();
-      iterator = hashTable.entrySet().iterator();
-      computed = true;
-    }
-
-    FunctionContext [] contexts;
-
-    if (iterator.hasNext()) {
-      Entry<Tuple, FunctionContext []> entry = iterator.next();
-      Tuple keyTuple = entry.getKey();
-      contexts =  entry.getValue();
-
-      int tupleIdx = 0;
-      for (; tupleIdx < groupingKeyNum; tupleIdx++) {
-        tuple.put(tupleIdx, keyTuple.get(tupleIdx));
-      }
-      for (int funcIdx = 0; funcIdx < aggFunctionsNum; funcIdx++, tupleIdx++) {
-        tuple.put(tupleIdx, aggFunctions[funcIdx].terminate(contexts[funcIdx]));
+    stopWatch.reset(0);
+    try {
+      if (!computed) {
+        compute();
+        iterator = hashTable.entrySet().iterator();
+        computed = true;
       }
 
-      return tuple;
-    } else {
-      return null;
+      FunctionContext[] contexts;
+
+      if (iterator.hasNext()) {
+        Entry<Tuple, FunctionContext[]> entry = iterator.next();
+        Tuple keyTuple = entry.getKey();
+        contexts = entry.getValue();
+
+        int tupleIdx = 0;
+        for (; tupleIdx < groupingKeyNum; tupleIdx++) {
+          tuple.put(tupleIdx, keyTuple.get(tupleIdx));
+        }
+        for (int funcIdx = 0; funcIdx < aggFunctionsNum; funcIdx++, tupleIdx++) {
+          tuple.put(tupleIdx, aggFunctions[funcIdx].terminate(contexts[funcIdx]));
+        }
+        numOutTuple++;
+        return tuple;
+      } else {
+        return null;
+      }
+    } finally {
+      nanoTimeNext += stopWatch.checkNano(0);
     }
   }
 
@@ -117,8 +134,11 @@ public class HashAggregateExec extends AggregationExec {
 
   @Override
   public void close() throws IOException {
+    int pid = plan.getPID();
     super.close();
     hashTable.clear();
+    putProfileMetrics(pid, getClass().getSimpleName() + "_" + pid + ".compute.nanoTime", nanoTimeCompute);
+    closeProfile(pid);
     hashTable = null;
     iterator = null;
   }

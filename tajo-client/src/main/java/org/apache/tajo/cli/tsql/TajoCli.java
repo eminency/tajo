@@ -538,6 +538,11 @@ public class TajoCli {
       if (response.getIsForwarded()) {
         QueryId queryId = new QueryId(response.getQueryId());
         waitForQueryCompleted(queryId);
+        try {
+          PrintWriter out = new PrintWriter(new File("profile.json"));
+          out.println(client.getQueryProfileJSONString(queryId));
+          out.close();
+        } catch(Exception e) {}
       } else {
         if (!response.hasTableDesc() && !response.hasResultSet()) {
           displayFormatter.printMessage(sout, "OK");

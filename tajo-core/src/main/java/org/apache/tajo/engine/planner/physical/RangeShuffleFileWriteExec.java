@@ -27,9 +27,12 @@ import org.apache.hadoop.io.IOUtils;
 import org.apache.tajo.catalog.*;
 import org.apache.tajo.catalog.proto.CatalogProtos;
 import org.apache.tajo.conf.TajoConf;
+import org.apache.tajo.plan.LogicalPlan;
+import org.apache.tajo.plan.logical.LogicalNode;
 import org.apache.tajo.plan.util.PlannerUtil;
 import org.apache.tajo.storage.*;
 import org.apache.tajo.storage.index.bst.BSTIndex;
+import org.apache.tajo.util.StopWatch;
 import org.apache.tajo.worker.TaskAttemptContext;
 
 import java.io.IOException;
@@ -50,12 +53,15 @@ public class RangeShuffleFileWriteExec extends UnaryPhysicalExec {
   private TupleComparator comp;
   private FileAppender appender;
   private TableMeta meta;
+  private LogicalNode plan;
 
-  public RangeShuffleFileWriteExec(final TaskAttemptContext context,
+  public RangeShuffleFileWriteExec(final LogicalNode plan, final TaskAttemptContext context,
                                    final PhysicalExec child, final Schema inSchema, final Schema outSchema,
                                    final SortSpec[] sortSpecs) throws IOException {
     super(context, inSchema, outSchema, child);
+    this.plan = plan;
     this.sortSpecs = sortSpecs;
+    stopWatch = new StopWatch(5);
   }
 
   public void init() throws IOException {
@@ -88,6 +94,8 @@ public class RangeShuffleFileWriteExec extends UnaryPhysicalExec {
     this.indexWriter.open();
   }
 
+  String profileKey = getClass().getSimpleName() + ".next";
+
   @Override
   public Tuple next() throws IOException {
     Tuple tuple;
@@ -95,19 +103,23 @@ public class RangeShuffleFileWriteExec extends UnaryPhysicalExec {
     Tuple prevKeyTuple = null;
     long offset;
 
-
-    while(!context.isStopped() && (tuple = child.next()) != null) {
-      offset = appender.getOffset();
-      appender.addTuple(tuple);
-      keyTuple = new VTuple(keySchema.size());
-      RowStoreUtil.project(tuple, keyTuple, indexKeys);
-      if (prevKeyTuple == null || !prevKeyTuple.equals(keyTuple)) {
-        indexWriter.write(keyTuple, offset);
-        prevKeyTuple = keyTuple;
+    stopWatch.reset(0);
+    try {
+      while (!context.isStopped() && (tuple = child.next()) != null) {
+        offset = appender.getOffset();
+        appender.addTuple(tuple);
+        keyTuple = new VTuple(keySchema.size());
+        RowStoreUtil.project(tuple, keyTuple, indexKeys);
+        if (prevKeyTuple == null || !prevKeyTuple.equals(keyTuple)) {
+          indexWriter.write(keyTuple, offset);
+          prevKeyTuple = keyTuple;
+        }
       }
-    }
 
-    return null;
+      return null;
+    } finally {
+      nanoTimeNext += stopWatch.checkNano(0);
+    }
   }
 
   @Override
@@ -115,6 +127,7 @@ public class RangeShuffleFileWriteExec extends UnaryPhysicalExec {
   }
 
   public void close() throws IOException {
+    int pid = plan.getPID();
     super.close();
 
     appender.flush();
@@ -124,7 +137,10 @@ public class RangeShuffleFileWriteExec extends UnaryPhysicalExec {
 
     // Collect statistics data
     context.setResultStats(appender.getStats());
-    context.addShuffleFileOutput(0, context.getTaskId().toString());
+    context.addShuffleFileOutput(0, context.getTaskAttemptId().toString());
+
+    closeProfile(pid);
+
     appender = null;
     indexWriter = null;
   }

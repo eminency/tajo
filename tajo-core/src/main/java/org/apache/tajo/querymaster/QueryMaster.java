@@ -33,10 +33,10 @@ import org.apache.tajo.*;
 import org.apache.tajo.conf.TajoConf;
 import org.apache.tajo.engine.planner.global.GlobalPlanner;
 import org.apache.tajo.engine.query.QueryContext;
-import org.apache.tajo.ha.HAServiceUtil;
 import org.apache.tajo.ipc.QueryCoordinatorProtocol;
 import org.apache.tajo.ipc.QueryCoordinatorProtocol.*;
 import org.apache.tajo.ipc.TajoWorkerProtocol;
+import org.apache.tajo.ipc.TajoWorkerProtocol.*;
 import org.apache.tajo.master.event.QueryStartEvent;
 import org.apache.tajo.master.event.QueryStopEvent;
 import org.apache.tajo.rpc.CallFuture;
@@ -45,10 +45,12 @@ import org.apache.tajo.rpc.NullCallback;
 import org.apache.tajo.rpc.RpcConnectionPool;
 import org.apache.tajo.rpc.protocolrecords.PrimitiveProtos;
 import org.apache.tajo.service.ServiceTracker;
+import org.apache.tajo.util.JSPUtil;
 import org.apache.tajo.util.NetUtils;
 import org.apache.tajo.util.history.QueryHistory;
 import org.apache.tajo.worker.TajoWorker;
 
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -536,5 +538,44 @@ public class QueryMaster extends CompositeService implements EventHandler {
         }
       }
     }
+  }
+  public List<TajoWorkerProtocol.QueryProfileDataListProto> getQueryProfileData(QueryId queryId) throws Exception {
+    List<TajoWorkerProtocol.QueryProfileDataListProto> result = new ArrayList<TajoWorkerProtocol.QueryProfileDataListProto>();
+    for (WorkerResourceProto workerResource: getAllWorker()) {
+      NettyClientBase rpc = null;
+      try {
+        rpc = connPool.getConnection(new InetSocketAddress(workerResource.getConnectionInfo().getHost(),
+            workerResource.getConnectionInfo().getPeerRpcPort()),
+          TajoWorkerProtocol.class, true);
+        TajoWorkerProtocol.TajoWorkerProtocolService workerService = rpc.getStub();
+
+        CallFuture<TajoWorkerProtocol.QueryProfileDataListProto> callBack =
+          new CallFuture<TajoWorkerProtocol.QueryProfileDataListProto>();
+        workerService.getQueryProfileData(null, queryId.getProto(), callBack);
+
+        TajoWorkerProtocol.QueryProfileDataListProto queryProfileDataList = callBack.get(2, TimeUnit.SECONDS);
+        result.add(queryProfileDataList);
+      } catch (Exception e) {
+        LOG.error(e.getMessage(), e);
+      } finally {
+        connPool.releaseConnection(rpc);
+      }
+    }
+
+    return result;
+  }
+
+  public String getQueryProfileJSONString(QueryId queryId) throws Exception {
+    List<QueryProfileDataListProto> profileData = getQueryProfileData(queryId);
+    QueryMasterTask queryMasterTask = getQueryMasterTask(queryId, true);
+    Query query = queryMasterTask.getQuery();
+    List<Stage> stages = JSPUtil.sortStages(query.getStages());
+
+    List<ExecutionBlockId> ebIds = new ArrayList<ExecutionBlockId>();
+    for (Stage subQuery:stages) {
+      ebIds.add(subQuery.getId());
+    }
+
+    return JSPUtil.profileToJSONString(profileData, ebIds);
   }
 }

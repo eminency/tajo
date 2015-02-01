@@ -27,6 +27,7 @@ import org.apache.tajo.storage.FrameTuple;
 import org.apache.tajo.storage.Tuple;
 import org.apache.tajo.storage.TupleComparator;
 import org.apache.tajo.storage.VTuple;
+import org.apache.tajo.util.StopWatch;
 import org.apache.tajo.worker.TaskAttemptContext;
 
 import java.io.IOException;
@@ -64,6 +65,7 @@ public class MergeJoinExec extends BinaryPhysicalExec {
   public MergeJoinExec(TaskAttemptContext context, JoinNode plan, PhysicalExec outer,
       PhysicalExec inner, SortSpec[] outerSortKey, SortSpec[] innerSortKey) {
     super(context, plan.getInSchema(), plan.getOutSchema(), outer, inner);
+    stopWatch = new StopWatch(4);
     Preconditions.checkArgument(plan.hasJoinQual(), "Sort-merge join is only used for the equi-join, " +
         "but there is no join condition");
     this.joinNode = plan;
@@ -100,11 +102,13 @@ public class MergeJoinExec extends BinaryPhysicalExec {
   }
 
   public Tuple next() throws IOException {
+    stopWatch.reset(0);
     Tuple previous;
 
     while (!context.isStopped()) {
       if (!outerIterator.hasNext() && !innerIterator.hasNext()) {
         if(end){
+          nanoTimeNext += stopWatch.checkNano(0);
           return null;
         }
 
@@ -126,6 +130,7 @@ public class MergeJoinExec extends BinaryPhysicalExec {
             outerTuple = leftChild.next();
           }
           if (innerTuple == null || outerTuple == null) {
+            nanoTimeNext += stopWatch.checkNano(0);
             return null;
           }
         }
@@ -167,6 +172,7 @@ public class MergeJoinExec extends BinaryPhysicalExec {
 
       if (joinQual.eval(inSchema, frameTuple).isTrue()) {
         projector.eval(frameTuple, outTuple);
+        nanoTimeNext += stopWatch.checkNano(0);
         return outTuple;
       }
     }
@@ -184,8 +190,9 @@ public class MergeJoinExec extends BinaryPhysicalExec {
 
   @Override
   public void close() throws IOException {
+    int pid = joinNode.getPID();
     super.close();
-
+    closeProfile(pid);
     outerTupleSlots.clear();
     innerTupleSlots.clear();
     outerTupleSlots = null;

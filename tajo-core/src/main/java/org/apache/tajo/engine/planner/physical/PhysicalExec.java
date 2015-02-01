@@ -25,7 +25,10 @@ import org.apache.tajo.catalog.Schema;
 import org.apache.tajo.catalog.SchemaObject;
 import org.apache.tajo.catalog.statistics.TableStats;
 import org.apache.tajo.engine.codegen.CompilationError;
+import org.apache.tajo.engine.utils.QueryProfiler;
+import org.apache.tajo.engine.utils.QueryProfiler.QueryProfileMetrics;
 import org.apache.tajo.storage.Tuple;
+import org.apache.tajo.util.StopWatch;
 import org.apache.tajo.worker.TaskAttemptContext;
 
 import java.io.IOException;
@@ -36,6 +39,12 @@ public abstract class PhysicalExec implements SchemaObject {
   protected Schema inSchema;
   protected Schema outSchema;
   protected int outColumnNum;
+
+  protected long numOutTuple;
+  protected long numInTuple;
+  protected long nanoTimeInit;
+  protected long nanoTimeNext;
+  protected StopWatch stopWatch;
 
   public PhysicalExec(final TaskAttemptContext context, final Schema inSchema,
                       final Schema outSchema) {
@@ -67,15 +76,15 @@ public abstract class PhysicalExec implements SchemaObject {
   public abstract float getProgress();
 
   protected void info(Log log, String message) {
-    log.info("["+ context.getTaskId() + "] " + message);
+    log.info("["+ context.getTaskAttemptId() + "] " + message);
   }
 
   protected void warn(Log log, String message) {
-    log.warn("[" + context.getTaskId() + "] " + message);
+    log.warn("[" + context.getTaskAttemptId() + "] " + message);
   }
 
   protected void fatal(Log log, String message) {
-    log.fatal("[" + context.getTaskId() + "] " + message);
+    log.fatal("[" + context.getTaskAttemptId() + "] " + message);
   }
 
   protected Path getExecutorTmpDir() {
@@ -85,5 +94,29 @@ public abstract class PhysicalExec implements SchemaObject {
 
   public TableStats getInputStats() {
     return null;
+  }
+
+  protected QueryProfileMetrics profileMetrics;
+
+  protected void putProfileMetrics(int id, String metricsName, long value) {
+    if (context.isEnabledProfile()) {
+      if (profileMetrics == null) {
+        profileMetrics = new QueryProfileMetrics(getClass().getSimpleName() + "_" + id);
+      }
+      profileMetrics.addValue(metricsName, value);
+    }
+  }
+
+  protected void closeProfile(int id) {
+    if (context.isEnabledProfile()) {
+      putProfileMetrics(id, getClass().getSimpleName() + "_" + id + ".init.nanoTime", nanoTimeInit);
+      putProfileMetrics(id, getClass().getSimpleName() + "_" + id + ".next.nanoTime", nanoTimeNext);
+      putProfileMetrics(id, getClass().getSimpleName() + "_" + id + ".inTuples", numInTuple);
+      putProfileMetrics(id, getClass().getSimpleName() + "_" + id + ".outTuples", numOutTuple);
+
+      if (context.getTaskAttemptId() != null) {
+        QueryProfiler.addProfileMetrics(context.getTaskAttemptId().getTaskId().getExecutionBlockId(), profileMetrics);
+      }
+    }
   }
 }

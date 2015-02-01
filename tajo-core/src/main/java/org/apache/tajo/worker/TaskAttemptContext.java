@@ -32,6 +32,9 @@ import org.apache.tajo.conf.TajoConf;
 import org.apache.tajo.engine.planner.enforce.Enforcer;
 import org.apache.tajo.engine.planner.global.DataChannel;
 import org.apache.tajo.engine.query.QueryContext;
+import org.apache.tajo.engine.utils.QueryProfiler;
+import org.apache.tajo.engine.utils.QueryProfiler.QueryProfileMetrics;
+import org.apache.tajo.storage.ProfileContext;
 import org.apache.tajo.plan.expr.EvalNode;
 import org.apache.tajo.storage.HashShuffleAppenderManager;
 import org.apache.tajo.storage.fragment.FileFragment;
@@ -46,6 +49,7 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.apache.tajo.catalog.proto.CatalogProtos.FragmentProto;
 
@@ -53,8 +57,9 @@ import static org.apache.tajo.catalog.proto.CatalogProtos.FragmentProto;
 /**
  * Contains the information about executing task attempt.
  */
-public class TaskAttemptContext {
+public class TaskAttemptContext extends ProfileContext {
   private static final Log LOG = LogFactory.getLog(TaskAttemptContext.class);
+
   private final Map<String, List<FragmentProto>> fragmentMap = Maps.newHashMap();
 
   private TaskAttemptState state;
@@ -83,10 +88,11 @@ public class TaskAttemptContext {
   private Map<Integer, Long> partitionOutputVolume;
   private HashShuffleAppenderManager hashShuffleAppenderManager;
 
-  public TaskAttemptContext(QueryContext queryContext, final ExecutionBlockContext executionBlockContext,
-                            final TaskAttemptId queryId,
-                            final FragmentProto[] fragments,
-                            final Path workDir) {
+  private AtomicLong fetchWriteNanoTime = new AtomicLong(0);
+
+  public TaskAttemptContext(final QueryContext queryContext, final ExecutionBlockContext executionBlockContext,
+                            final TaskAttemptId queryId, final FragmentProto[] fragments, final Path workDir) {
+    super(QueryProfiler.isEnabledProfile(queryContext.getConf()));
     this.queryContext = queryContext;
 
     if (executionBlockContext != null) { // For unit tests
@@ -142,7 +148,7 @@ public class TaskAttemptContext {
   
   public void setState(TaskAttemptState state) {
     this.state = state;
-    LOG.info("Query status of " + getTaskId() + " is changed to " + state);
+    LOG.info("Query status of " + getTaskAttemptId() + " is changed to " + state);
   }
 
   public void setDataChannel(DataChannel dataChannel) {
@@ -306,7 +312,7 @@ public class TaskAttemptContext {
     return this.workDir;
   }
   
-  public TaskAttemptId getTaskId() {
+  public TaskAttemptId getTaskAttemptId() {
     return this.queryId;
   }
   
@@ -386,7 +392,7 @@ public class TaskAttemptContext {
   public boolean equals(Object obj) {
     if (obj instanceof TaskAttemptContext) {
       TaskAttemptContext other = (TaskAttemptContext) obj;
-      return queryId.equals(other.getTaskId());
+      return queryId.equals(other.getTaskAttemptId());
     } else {
       return false;
     }
@@ -402,5 +408,31 @@ public class TaskAttemptContext {
 
   public HashShuffleAppenderManager getHashShuffleAppenderManager() {
     return hashShuffleAppenderManager;
+  }
+
+  public String getId() {
+    if (getTaskAttemptId() == null) {
+      return null;
+    }
+    return getTaskAttemptId().toString();
+  }
+
+  @Override
+  public void addProfileMetrics(String operationName, String[] metricsKeys, long[] values) {
+    if (isEnabledProfile()) {
+      QueryProfileMetrics profileMetrics = new QueryProfileMetrics(operationName);
+      for (int i = 0; i < metricsKeys.length; i++) {
+        profileMetrics.addValue(metricsKeys[i], values[i]);
+      }
+      QueryProfiler.addProfileMetrics(getTaskAttemptId().getTaskId().getExecutionBlockId(), profileMetrics);
+    }
+  }
+
+  public long getFetchWriteNanoTime() {
+    return fetchWriteNanoTime.get();
+  }
+
+  public void addWriteNanoTime(long fetchWriteNanoTime) {
+    this.fetchWriteNanoTime.addAndGet(fetchWriteNanoTime);
   }
 }

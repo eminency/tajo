@@ -29,4 +29,5 @@ import "ClientProtos.proto";
 
 service QueryMasterClientProtocolService {
   rpc getQueryHistory(QueryIdRequest) returns (GetQueryHistoryResponse);
+  rpc getQueryProfileJSONString(QueryIdProto) returns (StringProto);
 }

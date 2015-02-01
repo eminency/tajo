@@ -119,4 +119,6 @@ public interface QueryClient extends Closeable {
   public QueryInfoProto getQueryInfo(final QueryId queryId) throws ServiceException;
 
   public QueryHistoryProto getQueryHistory(final QueryId queryId) throws ServiceException;
+
+  public String getQueryProfileJSONString(final QueryId queryId) throws ServiceException;
 }

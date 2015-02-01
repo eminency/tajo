@@ -272,7 +272,7 @@ public class PhysicalPlannerImpl implements PhysicalPlanner {
     }
 
     LOG.info(String.format("[%s] the volume of %s relations (%s) is %s and is %sfit to main maemory.",
-        context.getTaskId().toString(),
+        context.getTaskAttemptId().toString(),
         (left ? "Left" : "Right"),
         TUtil.arrayToString(lineage),
         FileUtil.humanReadableByteCount(volume, false),
@@ -396,7 +396,7 @@ public class PhysicalPlannerImpl implements PhysicalPlanner {
       smaller = left;
       larger = right;
       LOG.info(String.format("[%s] Left relations %s (%s) is smaller than Right relations %s (%s).",
-          context.getTaskId().toString(),
+          context.getTaskAttemptId().toString(),
           TUtil.arrayToString(leftLineage),
           FileUtil.humanReadableByteCount(leftSize, false),
           TUtil.arrayToString(rightLineage),
@@ -405,7 +405,7 @@ public class PhysicalPlannerImpl implements PhysicalPlanner {
       smaller = right;
       larger = left;
       LOG.info(String.format("[%s] Right relations %s (%s) is smaller than Left relations %s (%s).",
-          context.getTaskId().toString(),
+          context.getTaskAttemptId().toString(),
           TUtil.arrayToString(rightLineage),
           FileUtil.humanReadableByteCount(rightSize, false),
           TUtil.arrayToString(leftLineage),
@@ -779,7 +779,7 @@ public class PhysicalPlannerImpl implements PhysicalPlanner {
           specs[i] = new SortSpec(columns[i]);
         }
       }
-      return new RangeShuffleFileWriteExec(ctx, subOp, plan.getInSchema(), plan.getInSchema(), sortSpecs);
+      return new RangeShuffleFileWriteExec(plan, ctx, subOp, plan.getInSchema(), plan.getInSchema(), sortSpecs);
 
     case NONE_SHUFFLE:
       // if there is no given NULL CHAR property in the table property and the query is neither CTAS or INSERT,

@@ -19,15 +19,20 @@
 package org.apache.tajo.util;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tajo.ExecutionBlockId;
 import org.apache.tajo.catalog.FunctionDesc;
 import org.apache.tajo.catalog.proto.CatalogProtos;
 import org.apache.tajo.catalog.statistics.TableStats;
 import org.apache.tajo.conf.TajoConf;
+import org.apache.tajo.engine.utils.QueryProfiler.QueryProfileMetrics;
+import org.apache.tajo.ipc.TajoWorkerProtocol.QueryProfileDataListProto;
+import org.apache.tajo.ipc.TajoWorkerProtocol.QueryProfileDataListProto.*;
 import org.apache.tajo.master.QueryInProgress;
 import org.apache.tajo.master.TajoMaster.MasterContext;
 import org.apache.tajo.querymaster.QueryMasterTask;
 import org.apache.tajo.querymaster.Stage;
 import org.apache.tajo.querymaster.Task;
+import org.apache.tajo.rpc.protocolrecords.PrimitiveProtos.KeyValueProto;
 import org.apache.tajo.service.ServiceTracker;
 import org.apache.tajo.util.history.StageHistory;
 import org.apache.tajo.util.history.TaskHistory;
@@ -405,5 +410,91 @@ public class JSPUtil {
     }
 
     return originList;
+  }
+
+  public static String profileToString(List<QueryProfileDataListProto> profileData) {
+    Map<String, List<QueryProfileMetrics>> ebProfileMap = buildProfileMap(profileData);
+
+    StringBuilder sb = new StringBuilder();
+
+    SortedSet<String> ebIdKeySet = new TreeSet<String>(ebProfileMap.keySet());
+
+    sb.append("\n");
+    for (String eachEbId : ebIdKeySet) {
+      sb.append("====================================================\n");
+      sb.append(eachEbId).append("\n");
+
+      for (QueryProfileMetrics eachProfileMetrics : ebProfileMap.get(eachEbId)) {
+        sb.append(eachProfileMetrics.toInfoString()).append("\n");
+      }
+    }
+
+    return sb.toString();
+  }
+
+  public static String profileToJSONString(List<QueryProfileDataListProto> profileData, List<ExecutionBlockId> ebIds) {
+    Map<String, List<QueryProfileMetrics>> ebProfileMap = buildProfileMap(profileData);
+    StringBuilder sb = new StringBuilder();
+
+    sb.append('[');
+    for (ExecutionBlockId ebId : ebIds) {
+      sb.append('[');
+      sb.append('"').append("EB").append(ebId.getId()).append('"').append(',');
+      for (QueryProfileMetrics eachProfileMetrics : ebProfileMap.get(ebId.toString())) {
+        sb.append(eachProfileMetrics.toJSONString()).append(',');
+      }
+      sb.deleteCharAt(sb.length() - 1);
+      sb.append("],");
+    }
+    sb.deleteCharAt(sb.length() - 1);
+    sb.append(']');
+
+    return sb.toString();
+  }
+
+  private static Map<String, List<QueryProfileMetrics>> buildProfileMap(List<QueryProfileDataListProto> profileData) {
+
+    Map<String, List<QueryProfileMetrics>> ebProfileMap = new HashMap<String, List<QueryProfileMetrics>>();
+
+    // profileData -> each object has specified worker's profile data.
+    for (QueryProfileDataListProto workerProfileData : profileData) {
+      for (EBQueryProfileData ebProfileData : workerProfileData.getEbProfileDatasList()) {
+        String ebId = ebProfileData.getExecutionBlockId();
+        List<QueryProfileMetrics> profileMetrics = null;
+        if (ebProfileMap.containsKey(ebId)) {
+          profileMetrics = ebProfileMap.get(ebId);
+        } else {
+          profileMetrics = new ArrayList<QueryProfileMetrics>();
+          ebProfileMap.put(ebId, profileMetrics);
+        }
+
+        int index = 0;
+        for (QueryProfileMetricsProto eachMetrics : ebProfileData.getProfileMetricsList()) {
+          //LogicalNode's metrics value
+          QueryProfileMetrics queryProfileMetrics = null;
+          if (profileMetrics.size() > index) {
+            queryProfileMetrics = profileMetrics.get(index);
+          } else {
+            queryProfileMetrics = new QueryProfileMetrics("");
+            profileMetrics.add(queryProfileMetrics);
+          }
+
+          for (KeyValueProto eachKeyValue : eachMetrics.getMetricsValuesList()) {
+            queryProfileMetrics.addValue(eachKeyValue.getKey(), Long.parseLong(eachKeyValue.getValue()));
+          }
+
+          for (KeyValueProto eachKeyValue : eachMetrics.getMinValuesList()) {
+            queryProfileMetrics.setMinValue(eachKeyValue.getKey(), Long.parseLong(eachKeyValue.getValue()));
+          }
+
+          for (KeyValueProto eachKeyValue : eachMetrics.getMaxValuesList()) {
+            queryProfileMetrics.setMaxValue(eachKeyValue.getKey(), Long.parseLong(eachKeyValue.getValue()));
+          }
+          index++;
+        }
+      }
+    }
+
+    return ebProfileMap;
   }
 }

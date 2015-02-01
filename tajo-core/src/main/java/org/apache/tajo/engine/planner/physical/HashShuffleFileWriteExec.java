@@ -30,6 +30,7 @@ import org.apache.tajo.plan.logical.ShuffleFileWriteNode;
 import org.apache.tajo.storage.HashShuffleAppender;
 import org.apache.tajo.storage.HashShuffleAppenderManager;
 import org.apache.tajo.storage.Tuple;
+import org.apache.tajo.util.StopWatch;
 import org.apache.tajo.worker.TaskAttemptContext;
 
 import java.io.IOException;
@@ -75,11 +76,14 @@ public final class HashShuffleFileWriteExec extends UnaryPhysicalExec {
     this.partitioner = new HashPartitioner(shuffleKeyIds, numShuffleOutputs);
     this.hashShuffleAppenderManager = context.getHashShuffleAppenderManager();
     this.numHashShuffleBufferTuples = context.getConf().getIntVar(ConfVars.SHUFFLE_HASH_APPENDER_BUFFER_SIZE);
+    stopWatch = new StopWatch(5);
   }
 
+  String profileKey = getClass().getSimpleName() + ".next";
   @Override
   public void init() throws IOException {
     super.init();
+    nanoTimeInit = stopWatch.checkNano(1);
   }
   
   private HashShuffleAppender getAppender(int partId) throws IOException {
@@ -96,6 +100,7 @@ public final class HashShuffleFileWriteExec extends UnaryPhysicalExec {
   Map<Integer, List<Tuple>> partitionTuples = new HashMap<Integer, List<Tuple>>();
   long writtenBytes = 0L;
 
+  long nanoTimeFlush;
   @Override
   public Tuple next() throws IOException {
     try {
@@ -103,6 +108,8 @@ public final class HashShuffleFileWriteExec extends UnaryPhysicalExec {
       int partId;
       int tupleCount = 0;
       long numRows = 0;
+
+      stopWatch.reset(0);
       while (!context.isStopped() && (tuple = child.next()) != null) {
         tupleCount++;
         numRows++;
@@ -121,7 +128,7 @@ public final class HashShuffleFileWriteExec extends UnaryPhysicalExec {
           for (Map.Entry<Integer, List<Tuple>> entry : partitionTuples.entrySet()) {
             int appendPartId = entry.getKey();
             HashShuffleAppender appender = getAppender(appendPartId);
-            int appendedSize = appender.addTuples(context.getTaskId(), entry.getValue());
+            int appendedSize = appender.addTuples(context.getTaskAttemptId(), entry.getValue());
             writtenBytes += appendedSize;
             entry.getValue().clear();
           }
@@ -133,11 +140,12 @@ public final class HashShuffleFileWriteExec extends UnaryPhysicalExec {
       for (Map.Entry<Integer, List<Tuple>> entry : partitionTuples.entrySet()) {
         int appendPartId = entry.getKey();
         HashShuffleAppender appender = getAppender(appendPartId);
-        int appendedSize = appender.addTuples(context.getTaskId(), entry.getValue());
+        int appendedSize = appender.addTuples(context.getTaskAttemptId(), entry.getValue());
         writtenBytes += appendedSize;
         entry.getValue().clear();
       }
 
+      stopWatch.reset(2);
       TableStats aggregated = (TableStats)child.getInputStats().clone();
       aggregated.setNumBytes(writtenBytes);
       aggregated.setNumRows(numRows);
@@ -145,6 +153,7 @@ public final class HashShuffleFileWriteExec extends UnaryPhysicalExec {
 
       partitionTuples.clear();
 
+      nanoTimeFlush += stopWatch.checkNano(2);
       return null;
     } catch (Exception e) {
       LOG.error(e.getMessage(), e);
@@ -159,12 +168,14 @@ public final class HashShuffleFileWriteExec extends UnaryPhysicalExec {
 
   @Override
   public void close() throws IOException{
+    int pid = plan.getPID();
     super.close();
     if (appenderMap != null) {
       appenderMap.clear();
       appenderMap = null;
     }
-
+    putProfileMetrics(pid, getClass().getSimpleName() + "_" + pid + ".flush.nanoTime", nanoTimeFlush);
+    closeProfile(pid);
     partitioner = null;
     plan = null;
 
