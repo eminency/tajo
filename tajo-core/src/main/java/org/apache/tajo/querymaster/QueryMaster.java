@@ -393,7 +393,6 @@ public class QueryMaster extends CompositeService implements EventHandler {
         builder.setResultDesc(queryMasterTask.getQuery().getResultDesc().getProto());
       }
       builder.setQueryProgress(queryMasterTask.getQuery().getProgress());
-      builder.setQueryFinishTime(queryMasterTask.getQuery().getFinishTime());
     }
     return builder.build();
   }
@@ -507,11 +506,11 @@ public class QueryMaster extends CompositeService implements EventHandler {
 
   class FinishedQueryMasterTaskCleanThread extends Thread {
     public void run() {
-      int expireIntervalTime = systemConf.getIntVar(TajoConf.ConfVars.WORKER_HISTORY_EXPIRE_PERIOD);
+      int expireIntervalTime = systemConf.getIntVar(TajoConf.ConfVars.QUERYMASTER_HISTORY_EXPIRE_PERIOD);
       LOG.info("FinishedQueryMasterTaskCleanThread started: expire interval minutes = " + expireIntervalTime);
       while(!queryMasterStop.get()) {
         try {
-          Thread.sleep(60 * 1000 * 60);   // hourly
+          Thread.sleep(60 * 1000);  // minimum interval minutes
         } catch (InterruptedException e) {
           break;
         }
@@ -528,7 +527,15 @@ public class QueryMaster extends CompositeService implements EventHandler {
       synchronized(finishedQueryMasterTasks) {
         List<QueryId> expiredQueryIds = new ArrayList<QueryId>();
         for(Map.Entry<QueryId, QueryMasterTask> entry: finishedQueryMasterTasks.entrySet()) {
-          if(entry.getValue().getStartTime() < expireTime) {
+
+          /* If a query are abnormal termination, the finished time will be zero. */
+          long finishedTime = entry.getValue().getStartTime();
+          Query query = entry.getValue().getQuery();
+          if (query != null && query.getFinishTime() > 0) {
+            finishedTime = query.getFinishTime();
+          }
+
+          if(finishedTime < expireTime) {
             expiredQueryIds.add(entry.getKey());
           }
         }
