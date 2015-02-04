@@ -158,6 +158,8 @@ public final class HashShuffleFileWriteExec extends UnaryPhysicalExec {
     } catch (Exception e) {
       LOG.error(e.getMessage(), e);
       throw new IOException(e);
+    } finally {
+      nanoTimeNext += stopWatch.checkNano(0);
     }
   }
 
