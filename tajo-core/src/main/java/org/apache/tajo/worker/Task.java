@@ -381,7 +381,9 @@ public class Task {
   }
 
   public void run() throws Exception {
+    long nanoTimeFetch = -1;
     startTime = System.currentTimeMillis();
+    long nanoTimeStart = System.nanoTime();
     Throwable error = null;
     try {
       context.setState(TaskAttemptState.TA_RUNNING);
@@ -389,7 +391,9 @@ public class Task {
       if (context.hasFetchPhase()) {
         // If the fetch is still in progress, the query unit must wait for
         // complete.
+        long startFetchTime = System.nanoTime();
         waitForFetch();
+        nanoTimeFetch = System.nanoTime() - startFetchTime;
         context.setFetcherProgress(FETCHER_PROGRESS);
         context.setProgressChanged(true);
         updateProgress();
@@ -406,6 +410,8 @@ public class Task {
       LOG.error(e.getMessage(), e);
       context.stop();
     } finally {
+      context.addProfileMetrics("Task", new String[]{"fetch", "fetch.write", "total"},
+        new long[]{nanoTimeFetch, context.getFetchWriteNanoTime(), System.nanoTime() - nanoTimeStart});
       if (executor != null) {
         try {
           executor.close();
