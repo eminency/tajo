@@ -18,6 +18,7 @@
 
 package org.apache.tajo.storage.cassandra;
 
+import org.apache.cassandra.thrift.Cassandra;
 import org.apache.tajo.OverridableConf;
 import org.apache.tajo.catalog.Schema;
 import org.apache.tajo.catalog.SortSpec;
@@ -29,6 +30,12 @@ import org.apache.tajo.storage.StorageManager;
 import org.apache.tajo.storage.StorageProperty;
 import org.apache.tajo.storage.TupleRange;
 import org.apache.tajo.storage.fragment.Fragment;
+import org.apache.thrift.protocol.TBinaryProtocol;
+import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.transport.TFramedTransport;
+import org.apache.thrift.transport.TSocket;
+import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
 
 import java.io.IOException;
 import java.util.List;
@@ -37,13 +44,25 @@ import java.util.List;
  * Storage manager for Cassandra NoSQL DBMS
  */
 public class CassandraStorageManager extends StorageManager {
+  private TTransport tr;
+  private Cassandra.Client client;
+
   public CassandraStorageManager(CatalogProtos.StoreType storeType) {
     super(storeType);
   }
 
   @Override
   protected void storageInit() throws IOException {
+    tr = new TFramedTransport(new TSocket(conf.get(CassandraStorageConstants.CASSANDRA_SERVER_ADDRESS, "localhost"),
+        conf.getInt(CassandraStorageConstants.CASSANDRA_SERVER_PORT, 9160)));
+    TProtocol proto = new TBinaryProtocol(tr);
+    client = new Cassandra.Client(proto);
 
+    try {
+      tr.open();
+    } catch (TTransportException e) {
+      throw new IOException(e.getMessage());
+    }
   }
 
   @Override
@@ -73,7 +92,7 @@ public class CassandraStorageManager extends StorageManager {
 
   @Override
   public void closeStorageManager() {
-
+    tr.close();
   }
 
   @Override
