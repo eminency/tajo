@@ -31,6 +31,7 @@ import org.apache.tajo.conf.TajoConf;
 import org.apache.tajo.datum.*;
 import org.apache.tajo.exception.UnsupportedException;
 import org.apache.tajo.storage.FileScanner;
+import org.apache.tajo.storage.StorageConstants;
 import org.apache.tajo.storage.Tuple;
 import org.apache.tajo.storage.VTuple;
 import org.apache.tajo.storage.fragment.Fragment;
@@ -115,12 +116,12 @@ public class OrcScanner extends FileScanner {
       fis = fs.open(path);
     }
 
-    // TODO: max merge distance should be fetched from conf
     OrcDataSource orcDataSource = new HdfsOrcDataSource(
         this.fragment.getPath().toString(),
         fis,
         fs.getFileStatus(path).getLen(),
-        100000000);
+        Integer.parseInt(meta.getOption(StorageConstants.ORC_MAX_MERGE_DISTANCE,
+          StorageConstants.DEFAULT_ORC_MAX_MERGE_DISTANCE)));
 
     targetColInfo = new ColumnInfo[targets.length];
     for (int i=0; i<targets.length; i++) {
